@@ -14,8 +14,6 @@
 #define resX 1000
 #define resY 1000
 
-
-
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
 std::vector<BadBall> badBalls;
