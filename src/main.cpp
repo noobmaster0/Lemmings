@@ -13,6 +13,7 @@
 
 #define resX 1000
 #define resY 1000
+#define PPM 10 // pixels per meter
 
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
@@ -30,7 +31,10 @@ int main()
 		return 1;
 	}
 
-	Ball circle(25,sf::Vector2f(50,50));
+	lemmings.emplace_back(25,sf::Vector2f(0,0));
+	lemmings[0].velocity = sf::Vector2f(25,0);
+
+	loadLevel("resources/level.txt");
 
 	float dt = 0;
 	sf::Clock clock;
@@ -48,21 +52,30 @@ int main()
 		}
 		window.clear(sf::Color(0, 220, 0));
 
-		for (auto& wall : walls) {
-			wall.closestPoint(circle);
-			wall.draw(window);
-		}
-		for (auto& badBall : badBalls)
+		if (mouse.isButtonPressed(sf::Mouse::Right))
 		{
-			badBall.solve(circle);
-			badBall.draw(window);
-		}
-		for (auto& polygon : polygons)
-		{
-			polygon.draw(window);
+			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 		}
 
-		
+		for (auto& lemming : lemmings)
+		{
+			for (auto& wall : walls) {
+				wall.closestPoint(lemming);
+				wall.draw(window);
+			}
+			for (auto& badBall : badBalls)
+			{
+				badBall.solve(lemming);
+				badBall.draw(window);
+			}
+			for (auto& polygon : polygons)
+			{
+				polygon.draw(window);
+			}
+			lemming.update(dt);
+			lemming.draw(window);
+		}
+
 		window.display();
 		dt = clock.restart().asSeconds();
 	}
@@ -101,7 +114,7 @@ int loadLevel(std::string path)
 
 	std::ifstream file;
 	file.open(path);
-
+	
 	std::string text;
 
 	if (file.is_open())
@@ -134,6 +147,12 @@ int loadLevel(std::string path)
 				polygons.emplace_back(verticies);
 				verticies.clear();
 			}
+			else if (command == " " || command == "")
+			{ }
+			else
+			{
+				std::cout << "Unrecognized symbol: \"" << command << "\"\n";
+			}
 		}
 	}
 	else
@@ -146,15 +165,21 @@ int loadLevel(std::string path)
 	return 0;
 }
 
-Ball::Ball(float radius, sf::Vector2f position)
+Lemming::Lemming(float radius, sf::Vector2f position)
 {
 	shape = sf::CircleShape(radius);
 	shape.setPosition(position);
 }
 
-void Ball::update(float dt)
+void Lemming::update(float dt)
 {
-	shape.setPosition(shape.getPosition() + velocity * dt);
+	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;
+	shape.setPosition(shape.getPosition() + velocity * dt * PPM);
+}
+
+void Lemming::draw(sf::RenderWindow& window)
+{
+	window.draw(shape);
 }
 
 Wall::Wall(sf::Vector2f p1, sf::Vector2f p2)
@@ -174,7 +199,7 @@ void Wall::draw(sf::RenderWindow& window)
 	window.draw(shape);
 }
 
-sf::Vector2f Wall::closestPoint(Ball& ball)
+sf::Vector2f Wall::closestPoint(Lemming& ball)
 {
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
 	float m = (p2.y - p1.y) / (p2.x - p1.x);
@@ -237,7 +262,7 @@ void BadBall::draw(sf::RenderWindow& window)
 	window.draw(shape);
 }
 
-void BadBall::solve(Ball& ball)
+void BadBall::solve(Lemming& ball)
 {
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
 	sf::Vector2f us = shape.getPosition() + sf::Vector2f(shape.getRadius(), shape.getRadius());
@@ -267,9 +292,4 @@ Polygon::Polygon(std::vector<sf::Vector2f> verticies)
 void Polygon::draw(sf::RenderWindow& window)
 {
 	window.draw(shape);
-}
-
-Lemming::Lemming()
-{
-
 }
