@@ -60,7 +60,7 @@ int main()
 		for (auto& lemming : lemmings)
 		{
 			for (auto& wall : walls) {
-				wall.closestPoint(lemming);
+				wall.closestPoint(lemming, dt);
 				wall.draw(window);
 			}
 			for (auto& badBall : badBalls)
@@ -174,7 +174,8 @@ Lemming::Lemming(float radius, sf::Vector2f position)
 void Lemming::update(float dt)
 {
 	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;
-	shape.setPosition(shape.getPosition() + velocity * dt * PPM);
+	shape.setPosition(shape.getPosition() + velocity * dt * (float)PPM);
+	velocity -= velocity * .5f * dt;
 }
 
 void Lemming::draw(sf::RenderWindow& window)
@@ -199,7 +200,7 @@ void Wall::draw(sf::RenderWindow& window)
 	window.draw(shape);
 }
 
-sf::Vector2f Wall::closestPoint(Lemming& ball)
+sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 {
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
 	float m = (p2.y - p1.y) / (p2.x - p1.x);
@@ -226,7 +227,8 @@ sf::Vector2f Wall::closestPoint(Lemming& ball)
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
 
 		ball.shape.setPosition(ball.shape.getPosition() - normal * (ball.shape.getRadius() - dist(p1, other)));
-		ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		ball.velocity.y = 0;
 	}
 	if (dist(p2, other) <= ball.shape.getRadius())
 	{
@@ -234,7 +236,8 @@ sf::Vector2f Wall::closestPoint(Lemming& ball)
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
 
 		ball.shape.setPosition(ball.shape.getPosition() - normal * (ball.shape.getRadius() - dist(p2, other)));
-		ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		ball.velocity.y = 0;
 	}
 
 	if (dist(closeP, ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius())) <= ball.shape.getRadius() &&
@@ -244,7 +247,8 @@ sf::Vector2f Wall::closestPoint(Lemming& ball)
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
 
 		ball.shape.setPosition(closeP + normal * ball.shape.getRadius() - sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius()));
-		ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		ball.velocity.y = 0;
 	}
 
 	return closeP;

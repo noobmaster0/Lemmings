@@ -20,7 +20,7 @@ public:
 	sf::VertexArray shape;
 	Wall(sf::Vector2f p1, sf::Vector2f p2);
 	void draw(sf::RenderWindow& window);
-	sf::Vector2f closestPoint(Lemming& ball);
+	sf::Vector2f closestPoint(Lemming& ball, float dt);
 };
 
 class BadBall

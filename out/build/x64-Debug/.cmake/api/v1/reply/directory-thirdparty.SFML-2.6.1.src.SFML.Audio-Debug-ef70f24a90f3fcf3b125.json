@@ -1,0 +1,53 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install",
+			"sfml_add_library"
+		],
+		"files" : 
+		[
+			"thirdparty/SFML-2.6.1/cmake/Macros.cmake",
+			"thirdparty/SFML-2.6.1/src/SFML/Audio/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 80,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 197,
+				"parent" : 1
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "devel",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"thirdparty/SFML-2.6.1/lib/sfml-audio-s-d.lib"
+			],
+			"targetId" : "sfml-audio::@bf0c5d179bfb42057647",
+			"targetIndex" : 4,
+			"type" : "target"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "thirdparty/SFML-2.6.1/src/SFML/Audio",
+		"source" : "thirdparty/SFML-2.6.1/src/SFML/Audio"
+	}
+}
