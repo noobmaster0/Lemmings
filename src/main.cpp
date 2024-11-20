@@ -39,16 +39,6 @@ int main()
 
 	loadLevel("resources/level.txt");
 
-	std::vector<sf::Vector2f> verticies;
-	sf::Vector2f ooffset = { 50,895 };
-	for (int x = 0; x < 100; x++)
-	{
-		verticies.emplace_back(ooffset + sf::Vector2f(x*5,x*5));
-	}
-	verticies.emplace_back(100*5,895);
-
-	polygons.emplace_back(verticies);
-
 	float dt = 0;
 	sf::Clock clock;
 	sf::Mouse mouse;
@@ -191,13 +181,13 @@ void Lemming::update(float dt)
 {
 	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;  // Apply gravity
 
-	if (dead)
+	if (state == State::DEAD)
 	{
 		shape.setFillColor(sf::Color::Red);
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
-	if (velocity.x == 0 && !dead)
+	if (velocity.x == 0 && state != State::DEAD)
 	{
 		if (!flipped)
 		{
@@ -209,11 +199,11 @@ void Lemming::update(float dt)
 		}
 	}
 
-	if (velocity.x != 0 && !dead) {
+	if (velocity.x != 0 && state != State::DEAD) {
 		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed;
 	}
 
-	if (dead)
+	if (state != State::DEAD)
 	{
 		velocity.x = 0;
 	}
@@ -278,7 +268,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 			// Normal collision response for non-vertical walls
 			if (ball.velocity.y > 15.f * PPM)
 			{
-				ball.dead = true;
+				ball.state = Lemming::State::DEAD;
 			}
 			float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 			if (normalComponent < 0) {
@@ -308,7 +298,7 @@ void Point::collide(Lemming& ball, float dt)
 		// Cancel out only the normal component of velocity
 		if (ball.velocity.y > 15.f * PPM)
 		{
-			ball.dead = true;
+			ball.state == Lemming::State::DEAD;
 		}
 		float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 		if (normalComponent < 0.1f) {  // Allow for small positive values
@@ -319,7 +309,7 @@ void Point::collide(Lemming& ball, float dt)
 
 Polygon::Polygon(std::vector<sf::Vector2f> verticies)
 {
-	shape = sf::VertexArray(sf::TriangleFan, verticies.size());
+	shape = sf::VertexArray(sf::TrianglesFan, verticies.size());
 	int i = 0;
 	for (auto& vertex : verticies)
 	{

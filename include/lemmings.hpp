@@ -11,7 +11,13 @@ public:
 	sf::Vector2f velocity;
 	sf::CircleShape shape;
 	bool flipped = false;
-	bool dead = false;
+	enum class State {
+		WALKING,
+		DIGGING,
+		FALLING,
+		DEAD
+	};
+	State state = State::WALKING;
 };
 
 class Wall
@@ -39,4 +45,11 @@ public:
 	sf::VertexArray shape;
 	Polygon(std::vector<sf::Vector2f> verticies);
 	void draw(sf::RenderWindow& window);
+};
+
+class TileMap // mostly stolen from https://www.sfml-dev.org/tutorials/2.6/graphics-vertex-array.php
+{
+public:
+	sf::VertexArray m_vertices;
+
 };
