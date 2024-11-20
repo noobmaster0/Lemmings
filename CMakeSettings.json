@@ -12,8 +12,8 @@
       "ctestCommandArgs": "",
       "variables": [
         {
-          "name": "BUILD_SHARED_LIBS",
-          "value": "False",
+          "name": "WARNINGS_AS_ERRORS",
+          "value": "false",
           "type": "BOOL"
         }
       ]

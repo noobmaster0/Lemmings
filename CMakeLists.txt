@@ -1,19 +1,18 @@
+
+
 cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 17)
-
-set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
-set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)
 
 #! ! ! ! ! ! !
 #set this to true to ship the game!
 #basically this will change the RESOURCES_PATH to be the local path
 #! ! ! ! ! ! !
 #DELETE THE OUT FOLDER AFTER CHANGING THIS BECAUSE VISUAL STUDIO DOESN'T SEEM TO RECOGNIZE THIS CHANGE AND REBUILD!
-option(PRODUCTION_BUILD "Make this a production build!" ON)
+option(PRODUCTION_BUILD "Make this a production build!" OFF)
 #DELETE THE OUT FOLDER AFTER CHANGING THIS BECAUSE VISUAL STUDIO DOESN'T SEEM TO RECOGNIZE THIS CHANGE AND REBUILD!
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -41,20 +40,23 @@ add_subdirectory(thirdparty/imgui-sfml-2.6.x)
 add_subdirectory(thirdparty/glad)
 
 
-
 # MY_SOURCES is defined to be a list of all the source files for my game 
 # DON'T ADD THE SOURCES BY HAND, they are already added with this macro
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 
-add_executable("${CMAKE_PROJECT_NAME}" "src/main.cpp")
+add_executable("${CMAKE_PROJECT_NAME}")
 
 set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY CXX_STANDARD 17)
+
+
 
 if(PRODUCTION_BUILD)
 	# setup the ASSETS_PATH macro to be in the root folder of your exe
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/") 
+
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC PRODUCTION_BUILD=1) 
+
 else()
 	# This is useful to get an ASSETS_PATH in your IDE during development
 	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/")
@@ -86,11 +88,11 @@ target_link_libraries("${CMAKE_PROJECT_NAME}"
 	sfml-graphics 
 	sfml-window 
 	sfml-system 
+	sfml-audio 
 	sfml-network
 	imgui
 	ImGui-SFML::ImGui-SFML
 	glad
 )
 
-# copy resources folder to build
 FILE(COPY resources DESTINATION "${CMAKE_BINARY_DIR}")
