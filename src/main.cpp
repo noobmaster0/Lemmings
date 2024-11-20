@@ -39,6 +39,19 @@ int main()
 
 	loadLevel("resources/level.txt");
 
+	bool mapp[200*200];
+	for (int i = 0; i < 200 * 200; ++i)
+	{
+		mapp[i] = 1;
+	}
+
+	for (int i = 0; i < 200*2; ++i)
+	{
+		mapp[i] = false;
+	}
+
+	TileMap map(&mapp[0]);
+
 	float dt = 0;
 	sf::Clock clock;
 	sf::Mouse mouse;
@@ -59,6 +72,8 @@ int main()
 		{
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 		}
+
+		map.draw(window);
 
 		for (auto& polygon : polygons)
 		{
@@ -187,7 +202,7 @@ void Lemming::update(float dt)
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
-	if (velocity.x == 0 && state != State::DEAD)
+	if (velocity.x == 0 && state != Lemming::State::DEAD)
 	{
 		if (!flipped)
 		{
@@ -199,11 +214,11 @@ void Lemming::update(float dt)
 		}
 	}
 
-	if (velocity.x != 0 && state != State::DEAD) {
-		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed;
+	if (velocity.x != 0 && state != Lemming::State::DEAD) {
+		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed; 
 	}
 
-	if (state != State::DEAD)
+	if (state == Lemming::State::DEAD)
 	{
 		velocity.x = 0;
 	}
@@ -334,4 +349,66 @@ Polygon::Polygon(std::vector<sf::Vector2f> verticies)
 void Polygon::draw(sf::RenderWindow& window)
 {
 	window.draw(shape);
+}
+
+TileMap::TileMap(bool* map)
+{
+	int height = 1000 / 5, width = 1000 / 5;
+	sf::Vector2u tileSize = { 5,5 };
+
+	for (int x = 0; x < height * width; x++)
+	{
+		this->map[x] = map[x];
+	}
+
+	m_vertices.setPrimitiveType(sf::Triangles);
+	m_vertices.resize(1000 / 5 * 1000 / 5 * 6);
+
+
+
+	for (unsigned int i = 0; i < width; ++i)
+	{
+		for (unsigned int j = 0; j < height; ++j)
+		{
+			if (!map[i + j * width])
+				continue;
+			// get a pointer to the triangles' vertices of the current tile
+			sf::Vertex* triangles = &m_vertices[(i + j * width) * 6];
+
+			// define the 6 corners of the two triangles
+			triangles[0].position = sf::Vector2f(i * tileSize.x, j * tileSize.y);
+			triangles[1].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
+			triangles[2].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
+			triangles[3].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
+			triangles[4].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
+			triangles[5].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
+
+			triangles[0].color = sf::Color::Blue;
+			triangles[1].color = sf::Color::Blue;
+			triangles[2].color = sf::Color::Blue;
+			triangles[3].color = sf::Color::Blue;
+			triangles[4].color = sf::Color::Blue;
+			triangles[5].color = sf::Color::Blue;
+
+			// define the 6 matching texture coordinates
+			triangles[0].texCoords = triangles[0].position;
+			triangles[1].texCoords = triangles[1].position;
+			triangles[2].texCoords = triangles[2].position;
+			triangles[3].texCoords = triangles[3].position;
+			triangles[4].texCoords = triangles[4].position;
+			triangles[5].texCoords = triangles[5].position;
+		}
+	}
+	return;
+}
+
+void TileMap::draw(sf::RenderWindow& window)
+{
+	int height = 1000 / 5, width = 1000 / 5;
+	sf::Vector2u tileSize = { 5,5 };
+
+	m_vertices.setPrimitiveType(sf::Triangles);
+	m_vertices.resize(1000 / 5 * 1000 / 5 * 6);
+
+	window.draw(m_vertices);
 }

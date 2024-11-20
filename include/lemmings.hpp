@@ -51,5 +51,7 @@ class TileMap // mostly stolen from https://www.sfml-dev.org/tutorials/2.6/graph
 {
 public:
 	sf::VertexArray m_vertices;
-
+	bool map[(1000 / 5) * (1000 / 5)];
+	TileMap(bool* map);
+	void draw(sf::RenderWindow& window);
 };
