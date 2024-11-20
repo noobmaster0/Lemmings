@@ -10,6 +10,8 @@ public:
 	void draw(sf::RenderWindow& window);
 	sf::Vector2f velocity;
 	sf::CircleShape shape;
+	bool flipped = false;
+	bool dead = false;
 };
 
 class Wall
@@ -23,13 +25,12 @@ public:
 	sf::Vector2f closestPoint(Lemming& ball, float dt);
 };
 
-class BadBall
+class Point
 {
 public:
-	sf::CircleShape shape;
-	BadBall(float radius, sf::Vector2f position);
-	void draw(sf::RenderWindow& window);
-	void solve(Lemming& ball);
+	sf::Vector2f position;
+	Point(sf::Vector2f position);
+	void collide(Lemming& ball, float dt);
 };
 
 class Polygon

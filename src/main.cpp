@@ -13,12 +13,14 @@
 
 #define resX 1000
 #define resY 1000
-#define PPM 10 // pixels per meter
+#define PPM 4 // pixels per meter
+
+const float lemmingSpeed = 5*PPM;
 
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
-std::vector<BadBall> badBalls;
 std::vector<Lemming> lemmings;
+std::vector<Point> points;
 
 int main()
 {
@@ -31,10 +33,21 @@ int main()
 		return 1;
 	}
 
-	lemmings.emplace_back(25,sf::Vector2f(0,0));
-	lemmings[0].velocity = sf::Vector2f(25,0);
+	sf::Text test("", font, 30);
+
+	lemmings.emplace_back(15, sf::Vector2f(0, 0));
 
 	loadLevel("resources/level.txt");
+
+	std::vector<sf::Vector2f> verticies;
+	sf::Vector2f ooffset = { 50,895 };
+	for (int x = 0; x < 100; x++)
+	{
+		verticies.emplace_back(ooffset + sf::Vector2f(x*5,x*5));
+	}
+	verticies.emplace_back(100*5,895);
+
+	polygons.emplace_back(verticies);
 
 	float dt = 0;
 	sf::Clock clock;
@@ -57,24 +70,32 @@ int main()
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 		}
 
+		for (auto& polygon : polygons)
+		{
+			polygon.draw(window);
+		}
+
+		for (auto& wall : walls) {
+			wall.draw(window);
+		}
+
 		for (auto& lemming : lemmings)
 		{
 			for (auto& wall : walls) {
 				wall.closestPoint(lemming, dt);
-				wall.draw(window);
 			}
-			for (auto& badBall : badBalls)
+
+			for (auto& point : points)
 			{
-				badBall.solve(lemming);
-				badBall.draw(window);
+				point.collide(lemming, dt);
 			}
-			for (auto& polygon : polygons)
-			{
-				polygon.draw(window);
-			}
+			
 			lemming.update(dt);
 			lemming.draw(window);
 		}
+
+		test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
+		window.draw(test);
 
 		window.display();
 		dt = clock.restart().asSeconds();
@@ -110,7 +131,6 @@ size_t split(const std::string& txt, std::vector<std::string>& strs, char ch)
 int loadLevel(std::string path)
 {
 	walls.clear();
-	badBalls.clear();
 
 	std::ifstream file;
 	file.open(path);
@@ -131,10 +151,6 @@ int loadLevel(std::string path)
 			if (command == "w")
 			{
 				walls.emplace_back(sf::Vector2f(std::stoi(tokens[1]), std::stoi(tokens[2])), sf::Vector2f(std::stoi(tokens[3]), std::stoi(tokens[4])));
-			}
-			else if (command == "b")
-			{
-				badBalls.emplace_back(std::stoi(tokens[1]), sf::Vector2f(std::stoi(tokens[2]), std::stoi(tokens[3])));
 			}
 			else if (command == "p")
 			{
@@ -173,9 +189,36 @@ Lemming::Lemming(float radius, sf::Vector2f position)
 
 void Lemming::update(float dt)
 {
-	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;
+	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;  // Apply gravity
+
+	if (dead)
+	{
+		shape.setFillColor(sf::Color::Red);
+	}
+
+	// Set vertical speed to exactly lemmingSpeed while preserving direction
+	if (velocity.x == 0 && !dead)
+	{
+		if (!flipped)
+		{
+			velocity.x += lemmingSpeed;
+		}
+		else
+		{
+			velocity.x -= lemmingSpeed;
+		}
+	}
+
+	if (velocity.x != 0 && !dead) {
+		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed;
+	}
+
+	if (dead)
+	{
+		velocity.x = 0;
+	}
+
 	shape.setPosition(shape.getPosition() + velocity * dt * (float)PPM);
-	velocity -= velocity * .5f * dt;
 }
 
 void Lemming::draw(sf::RenderWindow& window)
@@ -188,7 +231,7 @@ Wall::Wall(sf::Vector2f p1, sf::Vector2f p2)
 	this->p1 = p1;
 	this->p2 = p2;
 	shape = sf::VertexArray(sf::LinesStrip, 2);
-	color = sf::Color(0, 180, 0);
+	color = sf::Color::Red;
 }
 
 void Wall::draw(sf::RenderWindow& window)
@@ -219,65 +262,58 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		float y = m * (x - p1.x) + p1.y;
 		closeP = sf::Vector2f(x, y);
 	}
-
-
-	if (dist(p1, other) <= ball.shape.getRadius())
-	{
-		sf::Vector2f normal = (p1 - other);
-		normal = normal / dist(sf::Vector2f(0, 0), normal);
-
-		ball.shape.setPosition(ball.shape.getPosition() - normal * (ball.shape.getRadius() - dist(p1, other)));
-		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
-		ball.velocity.y = 0;
-	}
-	if (dist(p2, other) <= ball.shape.getRadius())
-	{
-		sf::Vector2f normal = (p2 - other);
-		normal = normal / dist(sf::Vector2f(0, 0), normal);
-
-		ball.shape.setPosition(ball.shape.getPosition() - normal * (ball.shape.getRadius() - dist(p2, other)));
-		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
-		ball.velocity.y = 0;
-	}
-
+	
 	if (dist(closeP, ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius())) <= ball.shape.getRadius() &&
 		dist(p1, closeP) + dist(p2, closeP) == dist(p1, p2))
 	{
 		sf::Vector2f normal = (other - closeP);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
-
 		ball.shape.setPosition(closeP + normal * ball.shape.getRadius() - sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius()));
-		//ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
-		ball.velocity.y = 0;
+		// Cancel out only the normal component of velocity
+		if (vertical) {
+			ball.velocity.x = -ball.velocity.x;  // Reflect x velocity only
+			ball.flipped = true;
+		}
+		else {
+			// Normal collision response for non-vertical walls
+			if (ball.velocity.y > 15.f * PPM)
+			{
+				ball.dead = true;
+			}
+			float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
+			if (normalComponent < 0) {
+				ball.velocity = ball.velocity - normalComponent * normal;
+			}
+		}
 	}
 
 	return closeP;
 }
 
-BadBall::BadBall(float radius, sf::Vector2f position)
+Point::Point(sf::Vector2f positon)
 {
-	shape = sf::CircleShape(radius);
-	shape.setPosition(position);
-	shape.setFillColor(sf::Color(0, 180, 0));
+	this->position = positon;
 }
 
-void BadBall::draw(sf::RenderWindow& window)
-{
-	window.draw(shape);
-}
-
-void BadBall::solve(Lemming& ball)
+void Point::collide(Lemming& ball, float dt)
 {
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
-	sf::Vector2f us = shape.getPosition() + sf::Vector2f(shape.getRadius(), shape.getRadius());
 
-	if (dist(us, other) <= ball.shape.getRadius() + shape.getRadius())
+	// Check collision with endpoints
+	if (dist(position, other) <= ball.shape.getRadius())
 	{
-		sf::Vector2f normal = (us - other);
+		sf::Vector2f normal = (other - position);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
-
-		ball.shape.setPosition(ball.shape.getPosition() - normal * (ball.shape.getRadius() + shape.getRadius() - dist(us, other)));
-		ball.velocity = ball.velocity - 2 * (ball.velocity.x * normal.x + ball.velocity.y * normal.y) * normal;
+		ball.shape.setPosition(ball.shape.getPosition() + normal * (ball.shape.getRadius() - dist(position, other)));
+		// Cancel out only the normal component of velocity
+		if (ball.velocity.y > 15.f * PPM)
+		{
+			ball.dead = true;
+		}
+		float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
+		if (normalComponent < 0.1f) {  // Allow for small positive values
+			ball.velocity = ball.velocity - normalComponent * normal;
+		}
 	}
 }
 
@@ -290,6 +326,18 @@ Polygon::Polygon(std::vector<sf::Vector2f> verticies)
 		shape[i] = sf::Vertex(vertex);
 		shape[i].color = sf::Color(0, 180, 0);
 		i += 1;
+	}
+
+	for (size_t i = 0; i < verticies.size(); i++)
+	{
+		// Get current vertex and next vertex (loop back to first vertex if at the end)
+		sf::Vector2f currentVertex = verticies[i];
+		sf::Vector2f nextVertex = verticies[(i + 1) % verticies.size()];
+
+		points.emplace_back(currentVertex);
+
+		// Create a wall between these vertices
+		walls.emplace_back(currentVertex, nextVertex);
 	}
 }
 
