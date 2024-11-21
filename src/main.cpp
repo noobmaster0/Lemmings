@@ -36,21 +36,31 @@ int main()
 	sf::Text test("", font, 30);
 
 	lemmings.emplace_back(15, sf::Vector2f(0, 0));
+	for(int i = 0; i<10; i++)
+		lemmings.emplace_back(15, sf::Vector2f(500+i, 700));
 
 	loadLevel("resources/level.txt");
 
-	bool mapp[200*200];
-	for (int i = 0; i < 200 * 200; ++i)
+	bool* mapp = new bool[100*100];
+	for (int i = 0; i < 100; ++i)
 	{
-		mapp[i] = 1;
+		for (int j = 0; j < 100; ++j)
+		{
+			if (i > 40 && i < 80)
+			{
+				mapp[i + j * 100] = 0;
+			}
+		}
 	}
 
-	for (int i = 0; i < 200*2; ++i)
+	for (int i = 0; i < 100*2; ++i)
 	{
 		mapp[i] = false;
 	}
 
 	TileMap map(&mapp[0]);
+
+	delete[] mapp; // free the memory
 
 	float dt = 0;
 	sf::Clock clock;
@@ -353,18 +363,11 @@ void Polygon::draw(sf::RenderWindow& window)
 
 TileMap::TileMap(bool* map)
 {
-	int height = 1000 / 5, width = 1000 / 5;
-	sf::Vector2u tileSize = { 5,5 };
-
-	for (int x = 0; x < height * width; x++)
-	{
-		this->map[x] = map[x];
-	}
+	int height = 1000 / 10, width = 1000 / 10;
+	sf::Vector2u tileSize = { 10,10 };
 
 	m_vertices.setPrimitiveType(sf::Triangles);
-	m_vertices.resize(1000 / 5 * 1000 / 5 * 6);
-
-
+	m_vertices.resize(1000 / 10 * 1000 / 10 * 6);
 
 	for (unsigned int i = 0; i < width; ++i)
 	{
@@ -397,6 +400,23 @@ TileMap::TileMap(bool* map)
 			triangles[3].texCoords = triangles[3].position;
 			triangles[4].texCoords = triangles[4].position;
 			triangles[5].texCoords = triangles[5].position;
+
+			/*walls.emplace_back(triangles[0].position, triangles[1].position);
+			wallsR.push_back(&walls.back());
+			walls.emplace_back(triangles[1].position, triangles[5].position);
+			wallsR.push_back(&walls.back());
+			walls.emplace_back(triangles[5].position, triangles[3].position);
+			wallsR.push_back(&walls.back());
+			walls.emplace_back(triangles[3].position, triangles[0].position);
+			
+			points.emplace_back(triangles[0].position);
+			pointsR.push_back(&points.back());
+			points.emplace_back(triangles[1].position);
+			pointsR.push_back(&points.back());
+			points.emplace_back(triangles[5].position);
+			pointsR.push_back(&points.back());
+			points.emplace_back(triangles[3].position);
+			pointsR.push_back(&points.back());*/
 		}
 	}
 	return;
@@ -404,11 +424,5 @@ TileMap::TileMap(bool* map)
 
 void TileMap::draw(sf::RenderWindow& window)
 {
-	int height = 1000 / 5, width = 1000 / 5;
-	sf::Vector2u tileSize = { 5,5 };
-
-	m_vertices.setPrimitiveType(sf::Triangles);
-	m_vertices.resize(1000 / 5 * 1000 / 5 * 6);
-
 	window.draw(m_vertices);
 }

@@ -3,4 +3,5 @@ bin/
 build/
 .idea/
 CMakeSettings.json
-Makefile
+Makefile 
+.vs/
