@@ -1,4 +1,5 @@
 float dist(sf::Vector2f p1, sf::Vector2f p2);
+float distsq(sf::Vector2f p1, sf::Vector2f p2);
 size_t split(const std::string& txt, std::vector<std::string>& strs, char ch);
 int loadLevel(std::string path);
 
@@ -51,8 +52,10 @@ class TileMap // mostly stolen from https://www.sfml-dev.org/tutorials/2.6/graph
 {
 public:
 	sf::VertexArray m_vertices;
-	std::vector<Point*> pointsR;
-	std::vector<Wall*> wallsR;
+	std::vector<int> pointsI;
+	std::vector<int> wallsI;
+	bool map[100*100];
 	TileMap(bool* map);
 	void draw(sf::RenderWindow& window);
+	void recalculate();
 };

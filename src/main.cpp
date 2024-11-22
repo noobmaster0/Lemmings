@@ -53,7 +53,12 @@ int main()
 		}
 	}
 
-	for (int i = 0; i < 100*2; ++i)
+	for (int i = 0; i < 100*10; ++i)
+	{
+		mapp[i] = false;
+	}
+
+	for (int i = 600*10; i > 400*10; --i)
 	{
 		mapp[i] = false;
 	}
@@ -121,6 +126,11 @@ int main()
 float dist(sf::Vector2f p1, sf::Vector2f p2)
 {
 	return (sqrt((p2.y - p1.y) * (p2.y - p1.y) + (p2.x - p1.x) * (p2.x - p1.x)));
+}
+
+float distsq(sf::Vector2f p1, sf::Vector2f p2)
+{
+	return (((p2.y - p1.y) * (p2.y - p1.y) + (p2.x - p1.x) * (p2.x - p1.x)));
 }
 
 size_t split(const std::string& txt, std::vector<std::string>& strs, char ch)
@@ -315,7 +325,7 @@ void Point::collide(Lemming& ball, float dt)
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
 
 	// Check collision with endpoints
-	if (dist(position, other) <= ball.shape.getRadius())
+	if (distsq(position, other) <= ball.shape.getRadius() * ball.shape.getRadius())
 	{
 		sf::Vector2f normal = (other - position);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
@@ -373,12 +383,36 @@ TileMap::TileMap(bool* map)
 	{
 		for (unsigned int j = 0; j < height; ++j)
 		{
-			if (!map[i + j * width])
-				continue;
-			// get a pointer to the triangles' vertices of the current tile
-			sf::Vertex* triangles = &m_vertices[(i + j * width) * 6];
+			this->map[(i + j * width)] = map[i + j * width];
+		}
+	}
 
-			// define the 6 corners of the two triangles
+	recalculate();
+
+	return;
+}
+
+void TileMap::draw(sf::RenderWindow& window)
+{
+	window.draw(m_vertices);
+}
+
+void TileMap::recalculate() {
+	int height = 1000 / 10, width = 1000 / 10;
+	sf::Vector2u tileSize = { 10, 10 };
+	// Resize vertex array to accommodate triangles
+	m_vertices.clear();
+	m_vertices.setPrimitiveType(sf::Triangles);
+	m_vertices.resize(width * height * 6);
+
+
+	for (unsigned int i = 0; i < width; ++i) {
+		for (unsigned int j = 0; j < height; ++j) {
+			if (!map[i + j * width])
+				continue; // Skip empty tiles
+
+			// Create tile vertices
+			sf::Vertex* triangles = &m_vertices[(i + j * width) * 6];
 			triangles[0].position = sf::Vector2f(i * tileSize.x, j * tileSize.y);
 			triangles[1].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
 			triangles[2].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
@@ -386,43 +420,75 @@ TileMap::TileMap(bool* map)
 			triangles[4].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
 			triangles[5].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
 
-			triangles[0].color = sf::Color::Blue;
-			triangles[1].color = sf::Color::Blue;
-			triangles[2].color = sf::Color::Blue;
-			triangles[3].color = sf::Color::Blue;
-			triangles[4].color = sf::Color::Blue;
-			triangles[5].color = sf::Color::Blue;
+			for (int k = 0; k < 6; ++k)
+				triangles[k].color = sf::Color::Blue;
 
-			// define the 6 matching texture coordinates
-			triangles[0].texCoords = triangles[0].position;
-			triangles[1].texCoords = triangles[1].position;
-			triangles[2].texCoords = triangles[2].position;
-			triangles[3].texCoords = triangles[3].position;
-			triangles[4].texCoords = triangles[4].position;
-			triangles[5].texCoords = triangles[5].position;
+			// Store adjacent cell states
+			bool above = (j > 0) ? map[i + (j - 1) * width] : true;
+			bool right = (i < width - 1) ? map[(i + 1) + j * width] : true;
+			bool below = (j < height - 1) ? map[i + (j + 1) * width] : true;
+			bool left = (i > 0) ? map[(i - 1) + j * width] : true;
 
-			/*walls.emplace_back(triangles[0].position, triangles[1].position);
-			wallsR.push_back(&walls.back());
-			walls.emplace_back(triangles[1].position, triangles[5].position);
-			wallsR.push_back(&walls.back());
-			walls.emplace_back(triangles[5].position, triangles[3].position);
-			wallsR.push_back(&walls.back());
-			walls.emplace_back(triangles[3].position, triangles[0].position);
-			
-			points.emplace_back(triangles[0].position);
-			pointsR.push_back(&points.back());
-			points.emplace_back(triangles[1].position);
-			pointsR.push_back(&points.back());
-			points.emplace_back(triangles[5].position);
-			pointsR.push_back(&points.back());
-			points.emplace_back(triangles[3].position);
-			pointsR.push_back(&points.back());*/
+			// Wall creation with corner detection
+			if (!above) { // Check above
+				walls.emplace_back(triangles[0].position, triangles[1].position);
+				wallsI.push_back(walls.size() - 1);
+
+				// Check corners for top wall
+				if (!left) { // Top-left corner
+					points.emplace_back(triangles[0].position);
+					pointsI.push_back(points.size() - 1);
+				}
+				if (!right) { // Top-right corner
+					points.emplace_back(triangles[1].position);
+					pointsI.push_back(points.size() - 1);
+				}
+			}
+
+			if (!right) { // Check right
+				walls.emplace_back(triangles[1].position, triangles[5].position);
+				wallsI.push_back(walls.size() - 1);
+
+				// Check corners for right wall
+				if (!above) { // Top-right corner
+					points.emplace_back(triangles[1].position);
+					pointsI.push_back(points.size() - 1);
+				}
+				if (!below) { // Bottom-right corner
+					points.emplace_back(triangles[5].position);
+					pointsI.push_back(points.size() - 1);
+				}
+			}
+
+			if (!below) { // Check below
+				walls.emplace_back(triangles[5].position, triangles[3].position);
+				wallsI.push_back(walls.size() - 1);
+
+				// Check corners for bottom wall
+				if (!right) { // Bottom-right corner
+					points.emplace_back(triangles[5].position);
+					pointsI.push_back(points.size() - 1);
+				}
+				if (!left) { // Bottom-left corner
+					points.emplace_back(triangles[3].position);
+					pointsI.push_back(points.size() - 1);
+				}
+			}
+
+			if (!left) { // Check left
+				walls.emplace_back(triangles[3].position, triangles[0].position);
+				wallsI.push_back(walls.size() - 1);
+
+				// Check corners for left wall
+				if (!below) { // Bottom-left corner
+					points.emplace_back(triangles[3].position);
+					pointsI.push_back(points.size() - 1);
+				}
+				if (!above) { // Top-left corner
+					points.emplace_back(triangles[0].position);
+					pointsI.push_back(points.size() - 1);
+				}
+			}
 		}
 	}
-	return;
-}
-
-void TileMap::draw(sf::RenderWindow& window)
-{
-	window.draw(m_vertices);
 }
