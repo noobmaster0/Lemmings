@@ -1,7 +1,7 @@
 /out
-bin/
-build/
-.idea/
-CMakeSettings.json
-Makefile 
+/bin/
+/build/
+/.idea/
+/CMakeSettings.json
+/Makefile 
 /.vs/
