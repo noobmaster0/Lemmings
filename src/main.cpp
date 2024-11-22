@@ -15,7 +15,7 @@
 #define resY 1000
 #define PPM 4 // pixels per meter
 
-const float lemmingSpeed = 5*PPM;
+const float lemmingSpeed = 3*PPM;
 
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
