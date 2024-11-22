@@ -12,6 +12,7 @@ public:
 	sf::Vector2f velocity;
 	sf::CircleShape shape;
 	bool flipped = false;
+	float clock = 5;
 	enum class State {
 		WALKING,
 		DIGGING,
@@ -56,6 +57,7 @@ public:
 	std::vector<int> wallsI;
 	bool map[200*200];
 	TileMap(bool* map);
-	void draw(sf::RenderWindow& window);
+	TileMap() {};
+	void draw(sf::RenderWindow& window, sf::Texture dirt);
 	void recalculate();
 };

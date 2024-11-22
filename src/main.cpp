@@ -17,10 +17,13 @@
 
 const float lemmingSpeed = 3*PPM;
 
+sf::Mouse mouse;
+
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
 std::vector<Lemming> lemmings;
 std::vector<Point> points;
+TileMap map;
 
 int main()
 {
@@ -30,6 +33,13 @@ int main()
 	if (!font.loadFromFile("C:/Windows/fonts/Arial.ttf"))
 	{
 		std::cout << "Failed to Load Arial.ttf";
+		return 1;
+	}
+
+	sf::Texture dirt;
+	if (!dirt.loadFromFile("resources/dirt.png"))
+	{
+		std::cout << "Failed to Load dirt.png";
 		return 1;
 	}
 
@@ -43,13 +53,12 @@ int main()
 	bool* mapp = new bool[200*200];
 	
 
-	TileMap map(&mapp[0]);
+	map = TileMap(&mapp[0]);
 
 	delete[] mapp; // free the memory
 
 	float dt = 0;
 	sf::Clock clock;
-	sf::Mouse mouse;
 
 	while (window.isOpen())
 	{
@@ -61,7 +70,7 @@ int main()
 			if (event.type == sf::Event::Resized)
 				window.setSize(sf::Vector2u(resX, resY));
 		}
-		window.clear(sf::Color(0, 220, 0));
+		window.clear(sf::Color(0, 0, 0));
 
 		if (mouse.isButtonPressed(sf::Mouse::Left))
 		{
@@ -83,18 +92,19 @@ int main()
 		{
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 			lemmings[0].state = Lemming::State::WALKING;
+			lemmings[0].shape.setFillColor(sf::Color::White);
 		}
 
-		map.draw(window);
+		map.draw(window, dirt);
 
 		for (auto& polygon : polygons)
 		{
 			polygon.draw(window);
 		}
 
-		for (auto& wall : walls) {
-			wall.draw(window);
-		}
+		//for (auto& wall : walls) {
+		//	wall.draw(window);
+		//}
 
 		for (auto& lemming : lemmings)
 		{
@@ -213,9 +223,34 @@ void Lemming::update(float dt)
 {
 	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;  // Apply gravity
 
+
+	if (clock <= 0 && state == State::DEAD)
+	{
+		int width = 200, height = 200;
+		for (unsigned int i = 0; i < width; ++i) {
+			for (unsigned int j = 0; j < height; ++j) {
+				if (!map.map[i + j * width])
+					continue; // Skip empty tiles
+				if (distsq(sf::Vector2f(i, j) * 5.f, shape.getPosition() - sf::Vector2f(shape.getRadius(),shape.getRadius())) <= 100.f * 100.f)
+				{
+					map.map[i + j * width] = false;
+				}
+			}
+		}
+		map.recalculate();
+	}
+	else if (state == State::DEAD)
+	{
+		clock -= dt;
+	}
+
 	if (state == State::DEAD)
 	{
 		shape.setFillColor(sf::Color::Red);
+	}
+	else
+	{
+		shape.setFillColor(sf::Color::White);
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
@@ -294,6 +329,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		// Cancel out only the normal component of velocity
 		if (vertical) {
 			ball.velocity.x = -ball.velocity.x;  // Reflect x velocity only
+			ball.velocity.y = 0;
 			ball.flipped = true;
 		}
 		else {
@@ -389,9 +425,11 @@ TileMap::TileMap(bool* map)
 	return;
 }
 
-void TileMap::draw(sf::RenderWindow& window)
+void TileMap::draw(sf::RenderWindow& window, sf::Texture dirt)
 {
-	window.draw(m_vertices);
+	sf::RenderStates states;
+	states.texture = &dirt;
+	window.draw(m_vertices, states);
 }
 
 void TileMap::recalculate() {
@@ -431,7 +469,7 @@ void TileMap::recalculate() {
 			triangles[5].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
 
 			for (int k = 0; k < 6; ++k)
-				triangles[k].color = sf::Color::Blue;
+				triangles[k].texCoords = triangles[k].position;
 
 			// Store adjacent cell states
 			bool above = (j > 0) ? map[i + (j - 1) * width] : true;
