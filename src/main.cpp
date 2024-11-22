@@ -35,33 +35,13 @@ int main()
 
 	sf::Text test("", font, 30);
 
-	lemmings.emplace_back(15, sf::Vector2f(0, 0));
 	for(int i = 0; i<10; i++)
-		lemmings.emplace_back(15, sf::Vector2f(500+i, 700));
+		lemmings.emplace_back(12, sf::Vector2f(500+i, 700));
 
 	loadLevel("resources/level.txt");
 
-	bool* mapp = new bool[100*100];
-	for (int i = 0; i < 100; ++i)
-	{
-		for (int j = 0; j < 100; ++j)
-		{
-			if (i > 40 && i < 80)
-			{
-				mapp[i + j * 100] = 0;
-			}
-		}
-	}
-
-	for (int i = 0; i < 100*10; ++i)
-	{
-		mapp[i] = false;
-	}
-
-	for (int i = 600*10; i > 400*10; --i)
-	{
-		mapp[i] = false;
-	}
+	bool* mapp = new bool[200*200];
+	
 
 	TileMap map(&mapp[0]);
 
@@ -83,9 +63,26 @@ int main()
 		}
 		window.clear(sf::Color(0, 220, 0));
 
+		if (mouse.isButtonPressed(sf::Mouse::Left))
+		{
+			int width = 200, height = 200;
+			for (unsigned int i = 0; i < width; ++i) {
+				for (unsigned int j = 0; j < height; ++j) {
+					if (!map.map[i + j * width])
+						continue; // Skip empty tiles
+					if (distsq(sf::Vector2f(i, j)*5.f, sf::Vector2f(mouse.getPosition(window)))<=100*100)
+					{
+						map.map[i + j * width] = false;
+					}
+				}
+			}
+			map.recalculate();
+		}
+
 		if (mouse.isButtonPressed(sf::Mouse::Right))
 		{
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
+			lemmings[0].state = Lemming::State::WALKING;
 		}
 
 		map.draw(window);
@@ -337,7 +334,7 @@ void Point::collide(Lemming& ball, float dt)
 		}
 		float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 		if (normalComponent < 0.1f) {  // Allow for small positive values
-			ball.velocity = ball.velocity - normalComponent * normal;
+			ball.velocity = ball.velocity - normalComponent * normal * .04f;
 		}
 	}
 }
@@ -373,11 +370,11 @@ void Polygon::draw(sf::RenderWindow& window)
 
 TileMap::TileMap(bool* map)
 {
-	int height = 1000 / 10, width = 1000 / 10;
-	sf::Vector2u tileSize = { 10,10 };
+	int height = 1000 / 5, width = 1000 / 5;
+	sf::Vector2u tileSize = { 5,5 };
 
 	m_vertices.setPrimitiveType(sf::Triangles);
-	m_vertices.resize(1000 / 10 * 1000 / 10 * 6);
+	m_vertices.resize(1000 / 5 * 1000 / 5 * 6);
 
 	for (unsigned int i = 0; i < width; ++i)
 	{
@@ -398,13 +395,26 @@ void TileMap::draw(sf::RenderWindow& window)
 }
 
 void TileMap::recalculate() {
-	int height = 1000 / 10, width = 1000 / 10;
-	sf::Vector2u tileSize = { 10, 10 };
+	int height = 1000 / 5, width = 1000 / 5;
+	sf::Vector2u tileSize = { 5, 5 };
 	// Resize vertex array to accommodate triangles
 	m_vertices.clear();
 	m_vertices.setPrimitiveType(sf::Triangles);
 	m_vertices.resize(width * height * 6);
 
+	// Remove walls marked for deletion in reverse order
+	std::sort(wallsI.begin(), wallsI.end(), std::greater<int>());
+	for (int index : wallsI) {
+		walls.erase(walls.begin() + index);
+	}
+	wallsI.clear();
+
+	// Remove points marked for deletion in reverse order
+	std::sort(pointsI.begin(), pointsI.end(), std::greater<int>());
+	for (int index : pointsI) {
+		points.erase(points.begin() + index);
+	}
+	pointsI.clear();
 
 	for (unsigned int i = 0; i < width; ++i) {
 		for (unsigned int j = 0; j < height; ++j) {

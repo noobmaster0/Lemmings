@@ -54,7 +54,7 @@ public:
 	sf::VertexArray m_vertices;
 	std::vector<int> pointsI;
 	std::vector<int> wallsI;
-	bool map[100*100];
+	bool map[200*200];
 	TileMap(bool* map);
 	void draw(sf::RenderWindow& window);
 	void recalculate();
