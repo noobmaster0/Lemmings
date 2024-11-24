@@ -38,20 +38,33 @@ int main()
 
 	sf::Texture dirt;
 	if (!dirt.loadFromFile("resources/dirt.png"))
-	{
-		std::cout << "Failed to Load dirt.png";
 		return 1;
-	}
+
+	sf::Image mapMask;
+	if (!mapMask.loadFromFile("resources/mapmask.png"))
+		return 1;
 
 	sf::Text test("", font, 30);
 
 	for(int i = 0; i<10; i++)
-		lemmings.emplace_back(12, sf::Vector2f(500+i, 700));
+		lemmings.emplace_back(12, sf::Vector2f(500+i*5, 700));
 
 	loadLevel("resources/level.txt");
 
 	bool* mapp = new bool[200*200];
 	
+	for (unsigned int i = 0; i < 200; ++i) {
+		for (unsigned int j = 0; j < 200; ++j) {
+			if (mapMask.getPixel(i, j) != sf::Color::White)
+			{
+				mapp[i + j * 200] = false;
+			}
+			else
+			{
+				mapp[i + j * 200] = true;
+			}
+		}
+	}
 
 	map = TileMap(&mapp[0]);
 
@@ -93,6 +106,7 @@ int main()
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 			lemmings[0].state = Lemming::State::WALKING;
 			lemmings[0].shape.setFillColor(sf::Color::White);
+			lemmings[0].clock = 2;
 		}
 
 		map.draw(window, dirt);
@@ -231,15 +245,17 @@ void Lemming::update(float dt)
 			for (unsigned int j = 0; j < height; ++j) {
 				if (!map.map[i + j * width])
 					continue; // Skip empty tiles
-				if (distsq(sf::Vector2f(i, j) * 5.f, shape.getPosition() - sf::Vector2f(shape.getRadius(),shape.getRadius())) <= 100.f * 100.f)
+				if (distsq(sf::Vector2f(i, j) * 5.f, shape.getPosition() + sf::Vector2f(shape.getRadius(),shape.getRadius())) <= 50.f * 50.f)
 				{
 					map.map[i + j * width] = false;
 				}
 			}
 		}
 		map.recalculate();
+		shape.setFillColor(sf::Color::Black);
+		clock = 200;
 	}
-	else if (state == State::DEAD)
+	else if (state == State::DEAD && clock != 200)
 	{
 		clock -= dt;
 	}
@@ -366,11 +382,11 @@ void Point::collide(Lemming& ball, float dt)
 		// Cancel out only the normal component of velocity
 		if (ball.velocity.y > 15.f * PPM)
 		{
-			ball.state == Lemming::State::DEAD;
+			ball.state = Lemming::State::DEAD;
 		}
 		float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 		if (normalComponent < 0.1f) {  // Allow for small positive values
-			ball.velocity = ball.velocity - normalComponent * normal * .04f;
+			ball.velocity = ball.velocity - normalComponent * normal * 60.f * dt;
 		}
 	}
 }
