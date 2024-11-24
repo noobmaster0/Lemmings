@@ -12,7 +12,7 @@ public:
 	sf::Vector2f velocity;
 	sf::CircleShape shape;
 	bool flipped = false;
-	float clock = 5;
+	float clock = 2;
 	enum class State {
 		WALKING,
 		DIGGING,
