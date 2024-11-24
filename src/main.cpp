@@ -4,12 +4,13 @@
 #include <fstream> 
 #include <string>
 #include <stdarg.h>
+#include <math.h>
 
 #include "imgui.h"
 #include "imgui-SFML.h"
 #include "imguiThemes.h"
 
-#include "lemmings.hpp";
+#include "lemmings.hpp"
 
 #define resX 1000
 #define resY 1000
@@ -30,7 +31,11 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(resX, resY), "Lemmings");
 
 	sf::Font font;
-	if (!font.loadFromFile("C:/Windows/fonts/Arial.ttf"))
+#ifdef __linux
+  if (!font.loadFromFile("/usr/share/fonts/TTF/arial.ttf"))
+#else 
+  if (!font.loadFromFile("C:/Windows/fonts/Arial.ttf"))
+#endif
 	{
 		std::cout << "Failed to Load Arial.ttf";
 		return 1;
