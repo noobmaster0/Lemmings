@@ -61,8 +61,8 @@ int main()
 
 	sf::Text test("", font, 30);
 
-	for (int i = 0; i < 1; i++) {
-		lemmings.emplace_back(12, sf::Vector2f(500 + i * 5, 700));
+	for (int i = 0; i < 10; i++) {
+		lemmings.emplace_back(12, sf::Vector2f(410 + i * 25, 650));
 		lemmings.back().shape.setTexture(character);
 		lemmings.back().shape.setTextureRect(sf::IntRect(0, 0, 16, 16));
 		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
@@ -85,6 +85,11 @@ int main()
 		}
 	}
 
+	sf::RectangleShape outline;
+	outline.setOutlineColor(sf::Color::Red);
+	outline.setOutlineThickness(1);
+	outline.setFillColor(sf::Color::Transparent);
+
 	map = TileMap(&mapp[0]);
 
 	delete[] mapp; // free the memory
@@ -106,14 +111,17 @@ int main()
 		}
 		window.clear(sf::Color(0, 0, 0));
 
+		sf::Vector2f mp = sf::Vector2f(mouse.getPosition(window));
+		float r = 50;
+
 		if (mouse.isButtonPressed(sf::Mouse::Left))
 		{
 			int width = 200, height = 200;
-			for (unsigned int i = 0; i < width; ++i) {
-				for (unsigned int j = 0; j < height; ++j) {
+			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
+				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
 					if (!map.map[i + j * width])
-						continue; // Skip empty tiles
-					if (distsq(sf::Vector2f(i, j)*5.f, sf::Vector2f(mouse.getPosition(window)))<=100*100)
+						continue;
+					if (distsq(sf::Vector2f(i, j)*5.f, mp)<=r*r)
 					{
 						map.map[i + j * width] = false;
 					}
@@ -157,6 +165,11 @@ int main()
 
 		test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
 		window.draw(test);
+
+		outline.setPosition((mp.x - r), (mp.y - r));
+		outline.setSize(sf::Vector2f(r, r)*2.f);
+
+		window.draw(outline);
 
 		window.display();
 		dt = clock.restart().asSeconds();
@@ -305,6 +318,7 @@ void Lemming::update(float dt)
 
 	if (velocity.x != 0 && state != Lemming::State::DEAD) {
 		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed; 
+		flipped = (velocity.x > 0) ? false : true;
 	}
 
 	if (state == Lemming::State::DEAD)
