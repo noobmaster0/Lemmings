@@ -54,11 +54,19 @@ int main()
 	sf::Image mapMask;
 	if (!mapMask.loadFromFile("resources/mapmask.png"))
 		return 1;
+	
+	sf::Texture character;
+	if (!character.loadFromFile("resources/character.png"))
+		return 1;
 
 	sf::Text test("", font, 30);
 
-	for(int i = 0; i<10; i++)
-		lemmings.emplace_back(12, sf::Vector2f(500+i*5, 700));
+	for (int i = 0; i < 1; i++) {
+		lemmings.emplace_back(12, sf::Vector2f(500 + i * 5, 700));
+		lemmings.back().shape.setTexture(character);
+		lemmings.back().shape.setTextureRect(sf::IntRect(0, 0, 16, 16));
+		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
+	}
 
 	loadLevel("resources/level.txt");
 
@@ -92,7 +100,9 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 			if (event.type == sf::Event::Resized)
+			{
 				window.setSize(sf::Vector2u(resX, resY));
+			}
 		}
 		window.clear(sf::Color(0, 0, 0));
 
@@ -116,7 +126,6 @@ int main()
 		{
 			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
 			lemmings[0].state = Lemming::State::WALKING;
-			lemmings[0].shape.setFillColor(sf::Color::White);
 			lemmings[0].clock = 2;
 		}
 
@@ -240,7 +249,8 @@ int loadLevel(std::string path)
 
 Lemming::Lemming(float radius, sf::Vector2f position)
 {
-	shape = sf::CircleShape(radius);
+	shape = sf::Sprite();
+	this->radius = radius;
 	shape.setPosition(position);
 }
 
@@ -248,36 +258,36 @@ void Lemming::update(float dt)
 {
 	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;  // Apply gravity
 
-
-	if (clock <= 0 && state == State::DEAD)
+	if (flipped)
 	{
-		int width = 200, height = 200;
-		for (unsigned int i = 0; i < width; ++i) {
-			for (unsigned int j = 0; j < height; ++j) {
-				if (!map.map[i + j * width])
-					continue; // Skip empty tiles
-				if (distsq(sf::Vector2f(i, j) * 5.f, shape.getPosition() + sf::Vector2f(shape.getRadius(),shape.getRadius())) <= 50.f * 50.f)
-				{
-					map.map[i + j * width] = false;
-				}
-			}
-		}
-		map.recalculate();
-		shape.setFillColor(sf::Color::Black);
-		clock = 200;
+		shape.setOrigin({ shape.getLocalBounds().width, 0 });
+		shape.setScale(-25.f / 16.f, 25.f / 16.f);
 	}
-	else if (state == State::DEAD && clock != 200)
+	else
 	{
-		clock -= dt;
+		shape.setOrigin({ 0, 0 });
+		shape.setScale(25.f / 16.f, 25.f / 16.f);
+	}
+
+	if (velocity.y >= 9.8*PPM && state != State::DEAD)
+	{
+		state = State::FALLING;
 	}
 
 	if (state == State::DEAD)
 	{
-		shape.setFillColor(sf::Color::Red);
+		shape.setTextureRect(sf::IntRect(0, 16, 16, 16));
 	}
-	else
+	else if (state == State::WALKING)
 	{
-		shape.setFillColor(sf::Color::White);
+		if (clock > 1)
+			clock = 0;
+		shape.setTextureRect(sf::IntRect(16*floor(clock*2+1), 0, 16, 16));
+		clock += dt;
+	}
+	else if (state == State::FALLING)
+	{
+		shape.setTextureRect(sf::IntRect(16, 16, 16, 16));
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
@@ -329,7 +339,7 @@ void Wall::draw(sf::RenderWindow& window)
 
 sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 {
-	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
+	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.radius, ball.radius);
 	float m = (p2.y - p1.y) / (p2.x - p1.x);
 
 	bool vertical = false;
@@ -346,24 +356,31 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		float y = m * (x - p1.x) + p1.y;
 		closeP = sf::Vector2f(x, y);
 	}
-	
-	if (dist(closeP, ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius())) <= ball.shape.getRadius() &&
+
+	if (dist(closeP, ball.shape.getPosition() + sf::Vector2f(ball.radius, ball.radius)) <= ball.radius &&
 		dist(p1, closeP) + dist(p2, closeP) == dist(p1, p2))
 	{
 		sf::Vector2f normal = (other - closeP);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
-		ball.shape.setPosition(closeP + normal * ball.shape.getRadius() - sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius()));
+		ball.shape.setPosition(closeP + normal * ball.radius - sf::Vector2f(ball.radius, ball.radius));
 		// Cancel out only the normal component of velocity
 		if (vertical) {
 			ball.velocity.x = -ball.velocity.x;  // Reflect x velocity only
 			//ball.velocity.y = 0;
-			ball.flipped = true;
+			if (ball.flipped)
+				ball.flipped = false;
+			else
+				ball.flipped = true;
 		}
 		else {
 			// Normal collision response for non-vertical walls
 			if (ball.velocity.y > 15.f * PPM)
 			{
 				ball.state = Lemming::State::DEAD;
+			}
+			else if (ball.state != Lemming::State::DEAD)
+			{
+				ball.state = Lemming::State::WALKING;
 			}
 			float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 			if (normalComponent < 0) {
@@ -382,18 +399,22 @@ Point::Point(sf::Vector2f positon)
 
 void Point::collide(Lemming& ball, float dt)
 {
-	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.shape.getRadius(), ball.shape.getRadius());
+	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.radius, ball.radius);
 
 	// Check collision with endpoints
-	if (distsq(position, other) <= ball.shape.getRadius() * ball.shape.getRadius())
+	if (distsq(position, other) <= ball.radius * ball.radius)
 	{
 		sf::Vector2f normal = (other - position);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
-		ball.shape.setPosition(ball.shape.getPosition() + normal * (ball.shape.getRadius() - dist(position, other)));
+		ball.shape.setPosition(ball.shape.getPosition() + normal * (ball.radius - dist(position, other)));
 		// Cancel out only the normal component of velocity
 		if (ball.velocity.y > 15.f * PPM)
 		{
 			ball.state = Lemming::State::DEAD;
+		}
+		else
+		{
+			ball.state = Lemming::State::WALKING;
 		}
 		float normalComponent = (ball.velocity.x * normal.x + ball.velocity.y * normal.y);
 		if (normalComponent < 0.1f) {  // Allow for small positive values

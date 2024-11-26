@@ -10,9 +10,10 @@ public:
 	void update(float dt);
 	void draw(sf::RenderWindow& window);
 	sf::Vector2f velocity;
-	sf::CircleShape shape;
+	sf::Sprite shape;
 	bool flipped = false;
 	float clock = 2;
+	float radius;
 	enum class State {
 		WALKING,
 		DIGGING,
