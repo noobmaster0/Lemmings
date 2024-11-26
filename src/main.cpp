@@ -28,10 +28,16 @@ TileMap map;
 
 int main()
 {
+#ifdef APPLE
+	std::cout << "Bad hardware & software detected :(\n";
+	return 1;
+#endif // APPLE
+
+
 	sf::RenderWindow window(sf::VideoMode(resX, resY), "Lemmings");
 
 	sf::Font font;
-#ifdef __linux
+#ifdef __linux__
   if (!font.loadFromFile("/usr/share/fonts/TTF/arial.ttf"))
 #else 
   if (!font.loadFromFile("C:/Windows/fonts/Arial.ttf"))
@@ -60,7 +66,7 @@ int main()
 	
 	for (unsigned int i = 0; i < 200; ++i) {
 		for (unsigned int j = 0; j < 200; ++j) {
-			if (mapMask.getPixel(i, j) != sf::Color::White)
+			if (mapMask.getPixel(i, j).r <= 255/2 && mapMask.getPixel(i, j).g <= 255 / 2 && mapMask.getPixel(i, j).b <= 255 / 2)
 			{
 				mapp[i + j * 200] = false;
 			}
@@ -350,7 +356,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		// Cancel out only the normal component of velocity
 		if (vertical) {
 			ball.velocity.x = -ball.velocity.x;  // Reflect x velocity only
-			ball.velocity.y = 0;
+			//ball.velocity.y = 0;
 			ball.flipped = true;
 		}
 		else {
