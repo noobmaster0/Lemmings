@@ -12,12 +12,14 @@ public:
 	sf::Vector2f velocity;
 	sf::Sprite shape;
 	bool flipped = false;
+	bool hasUmbrella = false;
 	float clock = 2;
 	float radius;
 	enum class State {
 		WALKING,
 		DIGGING,
 		FALLING,
+		SOFTFALLING,
 		DEAD
 	};
 	State state = State::WALKING;

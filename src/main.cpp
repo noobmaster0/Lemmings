@@ -141,7 +141,7 @@ int main()
 				}
 			}
 			map.recalculate();*/
-			lemmings[0].state = Lemming::State::DIGGING;
+			lemmings[0].hasUmbrella = true;
 		}
 
 
@@ -296,6 +296,15 @@ void Lemming::update(float dt)
 		state = State::FALLING;
 	}
 
+	if (state == State::FALLING && hasUmbrella)
+	{
+		state = State::SOFTFALLING;
+		if (velocity.y > 2.f*PPM*dt)
+		{
+			velocity.y = 2.f*PPM;
+		}
+	}
+
 	if (state == State::DEAD)
 	{
 		shape.setTextureRect(sf::IntRect(0, 16, 16, 16));
@@ -331,6 +340,10 @@ void Lemming::update(float dt)
 			map.recalculate();
 			clock = 0;
 		}
+	}
+	else if (state == State::SOFTFALLING)
+	{
+		shape.setTextureRect(sf::IntRect(32, 16, 16, 16));
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
