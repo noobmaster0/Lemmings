@@ -119,7 +119,7 @@ int main()
 
 		if (mouse.isButtonPressed(sf::Mouse::Left))
 		{
-			int width = 200, height = 200;
+			/*int width = 200, height = 200;
 			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
 				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
 					if (!map.map[i + j * width])
@@ -127,7 +127,11 @@ int main()
 					map.map[i + j * width] = false;
 				}
 			}
-			map.recalculate();
+			map.recalculate();*/
+			for (auto& lemming : lemmings)
+			{
+				lemming.shape.setPosition(mp);
+			}
 		}
 
 		if (mouse.isButtonPressed(sf::Mouse::Right))
@@ -141,7 +145,10 @@ int main()
 				}
 			}
 			map.recalculate();*/
-			lemmings[0].hasUmbrella = true;
+			if (!lemmings[0].hasUmbrella)
+				lemmings[0].hasUmbrella = true;
+			else
+				lemmings[0].hasUmbrella = false;
 		}
 
 
@@ -294,9 +301,10 @@ void Lemming::update(float dt)
 	if (velocity.y >= 5*PPM && state != State::DEAD)
 	{
 		state = State::FALLING;
+		velocity.x = 0;
 	}
 
-	if (state == State::FALLING && hasUmbrella)
+	if (state == State::FALLING && hasUmbrella && state != State::DEAD)
 	{
 		state = State::SOFTFALLING;
 		if (velocity.y > 2.f*PPM*dt)
@@ -347,7 +355,7 @@ void Lemming::update(float dt)
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
-	if (velocity.x == 0 && state != Lemming::State::DEAD && state != Lemming::State::DIGGING)
+	if (velocity.x == 0 && state == State::WALKING)
 	{
 		if (!flipped)
 		{
@@ -359,7 +367,7 @@ void Lemming::update(float dt)
 		}
 	}
 
-	if (velocity.x != 0 && state != Lemming::State::DEAD && state != Lemming::State::DIGGING) {
+	if (velocity.x != 0 && state == State::WALKING) {
 		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed; 
 		flipped = (velocity.x > 0) ? false : true;
 	}
@@ -421,7 +429,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
 		ball.shape.setPosition(closeP + normal * ball.radius - sf::Vector2f(ball.radius, ball.radius));
 		// Cancel out only the normal component of velocity
-		if (vertical) {
+		if (vertical && ball.state == Lemming::State::WALKING) {
 			ball.velocity.x = -ball.velocity.x;  // Reflect x velocity only
 			//ball.velocity.y = 0;
 			if (ball.flipped)
@@ -435,7 +443,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 			{
 				ball.state = Lemming::State::DEAD;
 			}
-			else if (ball.state != Lemming::State::DIGGING)
+			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD)
 			{
 				ball.state = Lemming::State::WALKING;
 			}
@@ -469,7 +477,7 @@ void Point::collide(Lemming& ball, float dt)
 		{
 			ball.state = Lemming::State::DEAD;
 		}
-		else if (ball.state != Lemming::State::DIGGING)
+		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD)
 		{
 			ball.state = Lemming::State::WALKING;
 		}
