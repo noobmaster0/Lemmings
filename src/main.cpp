@@ -119,7 +119,7 @@ int main()
 
 		if (mouse.isButtonPressed(sf::Mouse::Left))
 		{
-			/*int width = 200, height = 200;
+			int width = 200, height = 200;
 			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
 				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
 					if (!map.map[i + j * width])
@@ -127,11 +127,11 @@ int main()
 					map.map[i + j * width] = false;
 				}
 			}
-			map.recalculate();*/
-			for (auto& lemming : lemmings)
+			map.recalculate();
+			/*for (auto& lemming : lemmings)
 			{
 				lemming.shape.setPosition(mp);
-			}
+			}*/
 		}
 
 		if (mouse.isButtonPressed(sf::Mouse::Right))
@@ -145,10 +145,7 @@ int main()
 				}
 			}
 			map.recalculate();*/
-			if (!lemmings[0].hasUmbrella)
-				lemmings[0].hasUmbrella = true;
-			else
-				lemmings[0].hasUmbrella = false;
+			lemmings[0].state = Lemming::State::BLOCKING;
 		}
 
 
@@ -159,9 +156,9 @@ int main()
 			polygon.draw(window);
 		}
 
-		//for (auto& wall : walls) {
-		//	wall.draw(window);
-		//}
+		for (auto& wall : walls) {
+			wall.draw(window);
+		}
 
 		for (auto& lemming : lemmings)
 		{
@@ -298,7 +295,7 @@ void Lemming::update(float dt)
 		shape.setScale(25.f / 16.f, 25.f / 16.f);
 	}
 
-	if (velocity.y >= 5*PPM && state != State::DEAD)
+	if (velocity.y >= 5 * PPM && state != State::DEAD)
 	{
 		state = State::FALLING;
 		velocity.x = 0;
@@ -307,9 +304,9 @@ void Lemming::update(float dt)
 	if (state == State::FALLING && hasUmbrella && state != State::DEAD)
 	{
 		state = State::SOFTFALLING;
-		if (velocity.y > 2.f*PPM*dt)
+		if (velocity.y > 2.f * PPM * dt)
 		{
-			velocity.y = 2.f*PPM;
+			velocity.y = 2.f * PPM;
 		}
 	}
 
@@ -321,7 +318,7 @@ void Lemming::update(float dt)
 	{
 		if (clock > 1)
 			clock = 0;
-		shape.setTextureRect(sf::IntRect(16*floor(clock*2+1), 0, 16, 16));
+		shape.setTextureRect(sf::IntRect(16 * floor(clock * 2 + 1), 0, 16, 16));
 		clock += dt;
 	}
 	else if (state == State::FALLING)
@@ -335,7 +332,7 @@ void Lemming::update(float dt)
 		velocity.x = 0;
 		if (clock > 1)
 		{
-			sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25/2,15);
+			sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25 / 2, 15);
 			float r = 15;
 			int width = 200, height = 200;
 			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
@@ -352,6 +349,21 @@ void Lemming::update(float dt)
 	else if (state == State::SOFTFALLING)
 	{
 		shape.setTextureRect(sf::IntRect(32, 16, 16, 16));
+	}
+	else if (state == State::BLOCKING)
+	{
+		shape.setTextureRect(sf::IntRect(0, 48, 16, 16));
+		if (wallI == -1)
+		{
+			walls.emplace_back(shape.getPosition() + sf::Vector2f(radius, 0), shape.getPosition() + sf::Vector2f(radius, radius * 2));
+			wallI = (walls.size() - 1);
+		}
+		else
+		
+			walls[wallI].p1 = shape.getPosition() + sf::Vector2f(radius, 0);
+			walls[wallI].p2 = shape.getPosition() + sf::Vector2f(radius, radius * 2);
+		}
+		velocity.x = 0;
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
@@ -423,7 +435,8 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 	}
 
 	if (dist(closeP, ball.shape.getPosition() + sf::Vector2f(ball.radius, ball.radius)) <= ball.radius &&
-		dist(p1, closeP) + dist(p2, closeP) == dist(p1, p2))
+		dist(p1, closeP) + dist(p2, closeP) == dist(p1, p2) &&
+		!(ball.state == Lemming::State::BLOCKING && vertical))
 	{
 		sf::Vector2f normal = (other - closeP);
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
@@ -443,7 +456,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 			{
 				ball.state = Lemming::State::DEAD;
 			}
-			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD)
+			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
 			{
 				ball.state = Lemming::State::WALKING;
 			}
@@ -477,7 +490,7 @@ void Point::collide(Lemming& ball, float dt)
 		{
 			ball.state = Lemming::State::DEAD;
 		}
-		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD)
+		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
 		{
 			ball.state = Lemming::State::WALKING;
 		}

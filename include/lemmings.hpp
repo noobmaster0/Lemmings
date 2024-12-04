@@ -15,11 +15,13 @@ public:
 	bool hasUmbrella = false;
 	float clock = 2;
 	float radius;
+	int wallI = -1;
 	enum class State {
 		WALKING,
 		DIGGING,
 		FALLING,
 		SOFTFALLING,
+		BLOCKING,
 		DEAD
 	};
 	State state = State::WALKING;
