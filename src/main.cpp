@@ -68,6 +68,8 @@ int main()
 		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
 	}
 
+	lemmings[0].state == Lemming::State::DIGGING;
+
 	loadLevel("resources/level.txt");
 
 	bool* mapp = new bool[200*200];
@@ -111,6 +113,7 @@ int main()
 		}
 		window.clear(sf::Color(0, 0, 0));
 
+
 		sf::Vector2f mp = sf::Vector2f(mouse.getPosition(window));
 		float r = 50;
 
@@ -121,10 +124,7 @@ int main()
 				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
 					if (!map.map[i + j * width])
 						continue;
-					if (distsq(sf::Vector2f(i, j)*5.f, mp)<=r*r)
-					{
-						map.map[i + j * width] = false;
-					}
+					map.map[i + j * width] = false;
 				}
 			}
 			map.recalculate();
@@ -132,10 +132,18 @@ int main()
 
 		if (mouse.isButtonPressed(sf::Mouse::Right))
 		{
-			lemmings[0].shape.setPosition(sf::Vector2f(mouse.getPosition(window)));
-			lemmings[0].state = Lemming::State::WALKING;
-			lemmings[0].clock = 2;
+			/*int width = 200, height = 200;
+			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
+				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
+					if (map.map[i + j * width])
+						continue;
+					map.map[i + j * width] = true;
+				}
+			}
+			map.recalculate();*/
+			lemmings[0].state = Lemming::State::DIGGING;
 		}
+
 
 		map.draw(window, dirt);
 
@@ -166,8 +174,9 @@ int main()
 		test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
 		window.draw(test);
 
-		outline.setPosition((mp.x - r), (mp.y - r));
-		outline.setSize(sf::Vector2f(r, r)*2.f);
+		outline.setPosition(floor((mp.x - r)/5)*5, floor((mp.y - r)/5)*5);
+		outline.setSize(sf::Vector2f(r, r)*2.f+sf::Vector2f(5,5));
+
 
 		window.draw(outline);
 
@@ -282,7 +291,7 @@ void Lemming::update(float dt)
 		shape.setScale(25.f / 16.f, 25.f / 16.f);
 	}
 
-	if (velocity.y >= 9.8*PPM && state != State::DEAD)
+	if (velocity.y >= 5*PPM && state != State::DEAD)
 	{
 		state = State::FALLING;
 	}
@@ -302,9 +311,30 @@ void Lemming::update(float dt)
 	{
 		shape.setTextureRect(sf::IntRect(16, 16, 16, 16));
 	}
+	else if (state == State::DIGGING)
+	{
+		shape.setTextureRect(sf::IntRect(16 * floor(clock * 3), 32, 16, 16));
+		clock += dt;
+		velocity.x = 0;
+		if (clock > 1)
+		{
+			sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25/2,15);
+			float r = 15;
+			int width = 200, height = 200;
+			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
+				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
+					if (!map.map[i + j * width])
+						continue;
+					map.map[i + j * width] = false;
+				}
+			}
+			map.recalculate();
+			clock = 0;
+		}
+	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
-	if (velocity.x == 0 && state != Lemming::State::DEAD)
+	if (velocity.x == 0 && state != Lemming::State::DEAD && state != Lemming::State::DIGGING)
 	{
 		if (!flipped)
 		{
@@ -316,7 +346,7 @@ void Lemming::update(float dt)
 		}
 	}
 
-	if (velocity.x != 0 && state != Lemming::State::DEAD) {
+	if (velocity.x != 0 && state != Lemming::State::DEAD && state != Lemming::State::DIGGING) {
 		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed; 
 		flipped = (velocity.x > 0) ? false : true;
 	}
@@ -392,7 +422,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 			{
 				ball.state = Lemming::State::DEAD;
 			}
-			else if (ball.state != Lemming::State::DEAD)
+			else if (ball.state != Lemming::State::DIGGING)
 			{
 				ball.state = Lemming::State::WALKING;
 			}
@@ -426,7 +456,7 @@ void Point::collide(Lemming& ball, float dt)
 		{
 			ball.state = Lemming::State::DEAD;
 		}
-		else
+		else if (ball.state != Lemming::State::DIGGING)
 		{
 			ball.state = Lemming::State::WALKING;
 		}
