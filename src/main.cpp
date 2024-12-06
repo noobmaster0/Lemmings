@@ -17,6 +17,7 @@
 #define PPM 4 // pixels per meter
 
 const float lemmingSpeed = 3*PPM;
+int idCounter = 0;
 
 sf::Mouse mouse;
 
@@ -275,6 +276,7 @@ int loadLevel(std::string path)
 
 Lemming::Lemming(float radius, sf::Vector2f position)
 {
+	//wallI = nullptr;
 	shape = sf::Sprite();
 	this->radius = radius;
 	shape.setPosition(position);
@@ -356,14 +358,32 @@ void Lemming::update(float dt)
 		if (wallI == -1)
 		{
 			walls.emplace_back(shape.getPosition() + sf::Vector2f(radius, 0), shape.getPosition() + sf::Vector2f(radius, radius * 2));
-			wallI = (walls.size() - 1);
+			wallI = walls.back().id;
 		}
 		else
-		
-			walls[wallI].p1 = shape.getPosition() + sf::Vector2f(radius, 0);
-			walls[wallI].p2 = shape.getPosition() + sf::Vector2f(radius, radius * 2);
+		{
+			for (auto& wall : walls)
+			{
+				if (wall.id == wallI)
+				{
+					wall.p1 = shape.getPosition() + sf::Vector2f(radius, 0);
+					wall.p2 = shape.getPosition() + sf::Vector2f(radius, radius * 2);
+				}
+			}
 		}
 		velocity.x = 0;
+	}
+
+	if (state != State::BLOCKING && wallI != -1)
+	{
+		for (auto& wall : walls)
+		{
+			if (wall.id == wallI)
+			{
+				wall.exists = false;
+			}
+		}
+		wallI = -1;
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
@@ -379,7 +399,8 @@ void Lemming::update(float dt)
 		}
 	}
 
-	if (velocity.x != 0 && state == State::WALKING) {
+	if (velocity.x != 0 && state == State::WALKING) 
+	{
 		velocity.x = (velocity.x > 0) ? lemmingSpeed : -lemmingSpeed; 
 		flipped = (velocity.x > 0) ? false : true;
 	}
@@ -403,10 +424,13 @@ Wall::Wall(sf::Vector2f p1, sf::Vector2f p2)
 	this->p2 = p2;
 	shape = sf::VertexArray(sf::LinesStrip, 2);
 	color = sf::Color::Red;
+	id = idCounter;
+	idCounter++;
 }
 
 void Wall::draw(sf::RenderWindow& window)
 {
+	if (!exists) return;
 	shape[0].position = p1;
 	shape[1].position = p2;
 	shape[0].color = color;
@@ -416,6 +440,7 @@ void Wall::draw(sf::RenderWindow& window)
 
 sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 {
+	if (!exists) return sf::Vector2f(-100,-100);
 	sf::Vector2f other = ball.shape.getPosition() + sf::Vector2f(ball.radius, ball.radius);
 	float m = (p2.y - p1.y) / (p2.x - p1.x);
 

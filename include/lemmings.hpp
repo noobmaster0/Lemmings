@@ -15,7 +15,7 @@ public:
 	bool hasUmbrella = false;
 	float clock = 2;
 	float radius;
-	int wallI = -1;
+	int wallI;
 	enum class State {
 		WALKING,
 		DIGGING,
@@ -33,6 +33,8 @@ public:
 	sf::Vector2f p1, p2;
 	sf::Color color;
 	sf::VertexArray shape;
+	int id;
+	bool exists = true;
 	Wall(sf::Vector2f p1, sf::Vector2f p2);
 	void draw(sf::RenderWindow& window);
 	sf::Vector2f closestPoint(Lemming& ball, float dt);
