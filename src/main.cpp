@@ -366,6 +366,7 @@ void Lemming::update(float dt)
 			{
 				if (wall.id == wallI)
 				{
+					wall.exists = true;
 					wall.p1 = shape.getPosition() + sf::Vector2f(radius, 0);
 					wall.p2 = shape.getPosition() + sf::Vector2f(radius, radius * 2);
 				}
@@ -383,7 +384,6 @@ void Lemming::update(float dt)
 				wall.exists = false;
 			}
 		}
-		wallI = -1;
 	}
 
 	// Set vertical speed to exactly lemmingSpeed while preserving direction
