@@ -68,3 +68,24 @@ public:
 	void draw(sf::RenderWindow& window, sf::Texture dirt);
 	void recalculate();
 };
+
+class Start
+{
+public:
+	sf::Sprite shape;
+	float clock;
+	Start(sf::Vector2f position, sf::Texture texture);
+	Start() {};
+	void draw(sf::RenderWindow& window);
+	void update(float dt);
+};
+
+class End
+{
+public:
+	sf::Sprite shape;
+	End(sf::Vector2f positon, sf::Texture texture);
+	End() {};
+	void draw(sf::RenderWindow& window);
+	void update(float dt);
+};

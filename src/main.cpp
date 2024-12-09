@@ -16,8 +16,11 @@
 #define resY 1000
 #define PPM 4 // pixels per meter
 
+sf::Texture character;
+
 const float lemmingSpeed = 3*PPM;
 int idCounter = 0;
+int lemmingsRemaining = 5;
 
 sf::Mouse mouse;
 
@@ -26,6 +29,8 @@ std::vector<Wall> walls;
 std::vector<Lemming> lemmings;
 std::vector<Point> points;
 TileMap map;
+Start start;
+End end;
 
 int main()
 {
@@ -56,20 +61,32 @@ int main()
 	if (!mapMask.loadFromFile("resources/mapmask.png"))
 		return 1;
 	
-	sf::Texture character;
 	if (!character.loadFromFile("resources/character.png"))
+		return 1;
+
+	sf::Texture door;
+	if (!door.loadFromFile("resources/door.png"))
+		return 1;
+
+	sf::Texture trapdoor;
+	if (!trapdoor.loadFromFile("resources/trapdoor.png"))
 		return 1;
 
 	sf::Text test("", font, 30);
 
-	for (int i = 0; i < 10; i++) {
+	end.shape.setPosition(sf::Vector2f(400, 800));
+	end.shape.setTexture(door);
+
+	start.shape.setPosition(sf::Vector2f(500, 650));
+	start.shape.setTexture(trapdoor);
+
+	/*for (int i = 0; i < 10; i++) {
 		lemmings.emplace_back(12, sf::Vector2f(410 + i * 25, 650));
 		lemmings.back().shape.setTexture(character);
 		lemmings.back().shape.setTextureRect(sf::IntRect(0, 0, 16, 16));
 		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
-	}
+	}*/
 
-	lemmings[0].state == Lemming::State::DIGGING;
 
 	loadLevel("resources/level.txt");
 
@@ -120,35 +137,8 @@ int main()
 
 		if (mouse.isButtonPressed(sf::Mouse::Left))
 		{
-			int width = 200, height = 200;
-			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
-				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
-					if (!map.map[i + j * width])
-						continue;
-					map.map[i + j * width] = false;
-				}
-			}
-			map.recalculate();
-			/*for (auto& lemming : lemmings)
-			{
-				lemming.shape.setPosition(mp);
-			}*/
+			
 		}
-
-		if (mouse.isButtonPressed(sf::Mouse::Right))
-		{
-			/*int width = 200, height = 200;
-			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
-				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
-					if (map.map[i + j * width])
-						continue;
-					map.map[i + j * width] = true;
-				}
-			}
-			map.recalculate();*/
-			lemmings[0].state = Lemming::State::BLOCKING;
-		}
-
 
 		map.draw(window, dirt);
 
@@ -157,9 +147,15 @@ int main()
 			polygon.draw(window);
 		}
 
-		for (auto& wall : walls) {
+		/*for (auto& wall : walls) {
 			wall.draw(window);
-		}
+		}*/
+
+		end.update(dt);
+		start.update(dt);
+
+		end.draw(window);
+		start.draw(window);
 
 		for (auto& lemming : lemmings)
 		{
@@ -176,14 +172,13 @@ int main()
 			lemming.draw(window);
 		}
 
-		test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
-		window.draw(test);
+		//test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
+		//window.draw(test);
 
 		outline.setPosition(floor((mp.x - r)/5)*5, floor((mp.y - r)/5)*5);
 		outline.setSize(sf::Vector2f(r, r)*2.f+sf::Vector2f(5,5));
 
-
-		window.draw(outline);
+		//window.draw(outline);
 
 		window.display();
 		dt = clock.restart().asSeconds();
@@ -255,6 +250,18 @@ int loadLevel(std::string path)
 				}
 				polygons.emplace_back(verticies);
 				verticies.clear();
+			}
+			else if (command == "s")
+			{
+				start.shape.setPosition(sf::Vector2f(std::stoi(tokens[1]), std::stoi(tokens[2])));
+			}
+			else if (command == "e")
+			{
+				end.shape.setPosition(sf::Vector2f(std::stoi(tokens[1]), std::stoi(tokens[2])));
+			}
+			else if (command == "n")
+			{
+				lemmingsRemaining = std::stoi(tokens[1]);
 			}
 			else if (command == " " || command == "")
 			{ }
@@ -689,5 +696,57 @@ void TileMap::recalculate() {
 				}
 			}
 		}
+	}
+}
+
+Start::Start(sf::Vector2f position, sf::Texture texture)
+{
+	shape = sf::Sprite(texture);
+	shape.setPosition(position);
+}
+
+void Start::draw(sf::RenderWindow& window)
+{
+	window.draw(shape);
+}
+
+void Start::update(float dt)
+{
+	clock += dt;
+	if (clock > 2.f)
+	{
+		if (lemmingsRemaining > 1)
+		{
+			lemmings.emplace_back(12, shape.getPosition() + sf::Vector2f(4, 16));
+			lemmings.back().shape.setTexture(character);
+			lemmings.back().state = Lemming::State::FALLING;
+			lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
+			lemmingsRemaining--;
+		}
+		clock = clock - 2.f;
+	}
+}
+
+End::End(sf::Vector2f position, sf::Texture texture)
+{
+	shape = sf::Sprite(texture);
+	shape.setPosition(position);
+}
+
+void End::draw(sf::RenderWindow& window)
+{
+	window.draw(shape);
+}
+
+void End::update(float dt)
+{
+	int i = 0;
+	for (auto& lemming : lemmings)
+	{
+		if (distsq(lemming.shape.getPosition() + sf::Vector2f(12, 12), shape.getPosition() + sf::Vector2f(4, 8)) <= (8+12)*(8+12))
+		{
+			lemmings.erase(lemmings.begin() + i);
+		}
+		i++;
 	}
 }
