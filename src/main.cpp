@@ -5,6 +5,7 @@
 #include <string>
 #include <stdarg.h>
 #include <math.h>
+#include <functional>
 
 #include "imgui.h"
 #include "imgui-SFML.h"
@@ -22,12 +23,15 @@ const float lemmingSpeed = 3*PPM;
 int idCounter = 0;
 int lemmingsRemaining = 5;
 
+Lemming::State setState = Lemming::State::SOFTFALLING;
+
 sf::Mouse mouse;
 
 std::vector<Polygon> polygons;
 std::vector<Wall> walls;
 std::vector<Lemming> lemmings;
 std::vector<Point> points;
+std::vector<Button> buttons;
 TileMap map;
 Start start;
 End end;
@@ -87,6 +91,23 @@ int main()
 		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
 	}*/
 
+	polygons.emplace_back(std::vector<sf::Vector2f>{sf::Vector2f(0,0),sf::Vector2f(400,0),sf::Vector2f(400,100),sf::Vector2f(0,100)});
+
+	buttons.emplace_back(sf::Vector2f(0, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::DIGGING; });
+	buttons.back().shape.setTexture(character);
+	buttons.back().shape.setTextureRect(sf::IntRect(16, 32, 16, 16));
+
+	buttons.emplace_back(sf::Vector2f(100, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::SOFTFALLING; });
+	buttons.back().shape.setTexture(character);
+	buttons.back().shape.setTextureRect(sf::IntRect(32, 16, 16, 16));
+
+	buttons.emplace_back(sf::Vector2f(200, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::BLOCKING; });
+	buttons.back().shape.setTexture(character);
+	buttons.back().shape.setTextureRect(sf::IntRect(0, 48, 16, 16));
+
+	buttons.emplace_back(sf::Vector2f(300, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::WALKING; });
+	buttons.back().shape.setTexture(character);
+	buttons.back().shape.setTextureRect(sf::IntRect(0, 0, 16, 16));
 
 	loadLevel("resources/level.txt");
 
@@ -131,14 +152,8 @@ int main()
 		}
 		window.clear(sf::Color(0, 0, 0));
 
-
 		sf::Vector2f mp = sf::Vector2f(mouse.getPosition(window));
 		float r = 50;
-
-		if (mouse.isButtonPressed(sf::Mouse::Left))
-		{
-			
-		}
 
 		map.draw(window, dirt);
 
@@ -168,8 +183,18 @@ int main()
 				point.collide(lemming, dt);
 			}
 			
-			lemming.update(dt);
+			lemming.update(dt, window);
 			lemming.draw(window);
+		}
+
+		for (auto& button : buttons)
+		{
+			button.update(window);
+		}
+
+		for (auto& button : buttons)
+		{
+			button.draw(window);
 		}
 
 		//test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
@@ -289,8 +314,23 @@ Lemming::Lemming(float radius, sf::Vector2f position)
 	shape.setPosition(position);
 }
 
-void Lemming::update(float dt)
+void Lemming::update(float dt, sf::RenderWindow& window)
 {
+
+	if (mouse.isButtonPressed(sf::Mouse::Left))
+	{
+		sf::Vector2f mousePos = sf::Vector2f(mouse.getPosition(window));
+		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + 12*2 && mousePos.y <= shape.getPosition().y + 12*2))
+		{
+			state = setState;
+		}
+	}
+
+	if (state == State::SOFTFALLING)
+	{
+		hasUmbrella = true;
+	}
+
 	velocity += sf::Vector2f(0, 9.8 * PPM) * dt;  // Apply gravity
 
 	if (flipped)
@@ -357,6 +397,7 @@ void Lemming::update(float dt)
 	}
 	else if (state == State::SOFTFALLING)
 	{
+		hasUmbrella = true;
 		shape.setTextureRect(sf::IntRect(32, 16, 16, 16));
 	}
 	else if (state == State::BLOCKING)
@@ -540,7 +581,7 @@ Polygon::Polygon(std::vector<sf::Vector2f> verticies)
 	for (auto& vertex : verticies)
 	{
 		shape[i] = sf::Vertex(vertex);
-		shape[i].color = sf::Color(0, 180, 0);
+		shape[i].color = sf::Color(50,50,50);
 		i += 1;
 	}
 
@@ -748,5 +789,32 @@ void End::update(float dt)
 			lemmings.erase(lemmings.begin() + i);
 		}
 		i++;
+	}
+}
+
+Button::Button(sf::Vector2f positon, sf::Vector2f size, std::function<void()> callback)
+{
+	this->callback = callback;
+	this->size = size;
+	shape.setPosition(positon);
+	shape.setColor(sf::Color::Green);
+	shape.setScale(size);
+}
+
+void Button::draw(sf::RenderWindow& window)
+{
+	shape.setScale(size.x / shape.getTextureRect().width, size.y / shape.getTextureRect().height);
+	window.draw(shape);
+}
+
+void Button::update(sf::RenderWindow& window)
+{
+	if (mouse.isButtonPressed(sf::Mouse::Left))
+	{
+		sf::Vector2f mousePos = sf::Vector2f(mouse.getPosition(window));
+		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + size.x && mousePos.y <= shape.getPosition().y + size.y))
+		{
+			callback();
+		}
 	}
 }

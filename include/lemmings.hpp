@@ -7,7 +7,7 @@ class Lemming
 {
 public:
 	Lemming(float radius, sf::Vector2f position);
-	void update(float dt);
+	void update(float dt, sf::RenderWindow& window);
 	void draw(sf::RenderWindow& window);
 	sf::Vector2f velocity;
 	sf::Sprite shape;
@@ -88,4 +88,15 @@ public:
 	End() {};
 	void draw(sf::RenderWindow& window);
 	void update(float dt);
+};
+
+class Button
+{
+public:
+	sf::Sprite shape;
+	sf::Vector2f size;
+	Button(sf::Vector2f position, sf::Vector2f size, std::function<void()> callback);
+	void draw(sf::RenderWindow& window);
+	void update(sf::RenderWindow& window);
+	std::function<void()> callback;
 };
