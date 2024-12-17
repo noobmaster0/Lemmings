@@ -22,6 +22,10 @@ sf::Texture character;
 const float lemmingSpeed = 3*PPM;
 int idCounter = 0;
 int lemmingsRemaining = 5;
+int lemmingsNum = 5;
+int lemmingsNumOg = 5;
+
+int lvlCtr = 1;
 
 Lemming::State setState = Lemming::State::SOFTFALLING;
 
@@ -197,6 +201,20 @@ int main()
 			button.draw(window);
 		}
 
+		if (lemmingsRemaining <= 1 && lemmingsNum <= 1)
+		{
+			if (end.num >= .75 * lemmingsNumOg)
+			{
+				std::cout << "You win\n";
+				lvlCtr++;
+			}
+			else
+			{
+				std::cout << "You Loose\n";
+			}
+			break;
+		}
+
 		//test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
 		//window.draw(test);
 
@@ -287,6 +305,8 @@ int loadLevel(std::string path)
 			else if (command == "n")
 			{
 				lemmingsRemaining = std::stoi(tokens[1]);
+				lemmingsNum = lemmingsRemaining;
+				lemmingsNumOg = lemmingsRemaining;
 			}
 			else if (command == " " || command == "")
 			{ }
@@ -317,7 +337,7 @@ Lemming::Lemming(float radius, sf::Vector2f position)
 void Lemming::update(float dt, sf::RenderWindow& window)
 {
 
-	if (mouse.isButtonPressed(sf::Mouse::Left))
+	if (mouse.isButtonPressed(sf::Mouse::Left) && state != Lemming::State::DEAD)
 	{
 		sf::Vector2f mousePos = sf::Vector2f(mouse.getPosition(window));
 		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + 12*2 && mousePos.y <= shape.getPosition().y + 12*2))
@@ -525,9 +545,10 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 		}
 		else {
 			// Normal collision response for non-vertical walls
-			if (ball.velocity.y > 15.f * PPM)
+			if (ball.velocity.y > 15.f * PPM && ball.state != Lemming::State::DEAD)
 			{
 				ball.state = Lemming::State::DEAD;
+				lemmingsNum--;
 			}
 			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
 			{
@@ -559,9 +580,10 @@ void Point::collide(Lemming& ball, float dt)
 		normal = normal / dist(sf::Vector2f(0, 0), normal);
 		ball.shape.setPosition(ball.shape.getPosition() + normal * (ball.radius - dist(position, other)));
 		// Cancel out only the normal component of velocity
-		if (ball.velocity.y > 15.f * PPM)
+		if (ball.velocity.y > 15.f * PPM && ball.state != Lemming::State::DEAD)
 		{
 			ball.state = Lemming::State::DEAD;
+			lemmingsNum--;
 		}
 		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
 		{
@@ -787,6 +809,8 @@ void End::update(float dt)
 		if (distsq(lemming.shape.getPosition() + sf::Vector2f(12, 12), shape.getPosition() + sf::Vector2f(4, 8)) <= (8+12)*(8+12))
 		{
 			lemmings.erase(lemmings.begin() + i);
+			num++;
+			lemmingsNum--;
 		}
 		i++;
 	}

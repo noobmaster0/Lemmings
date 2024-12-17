@@ -84,6 +84,7 @@ class End
 {
 public:
 	sf::Sprite shape;
+	int num = 0;
 	End(sf::Vector2f positon, sf::Texture texture);
 	End() {};
 	void draw(sf::RenderWindow& window);
