@@ -94,7 +94,7 @@ int main()
 		lemmings.back().shape.setScale(25.f / 16.f, 25.f / 16.f);
 	}*/
 
-	polygons.emplace_back(std::vector<sf::Vector2f>{sf::Vector2f(0,0),sf::Vector2f(400,0),sf::Vector2f(400,100),sf::Vector2f(0,100)});
+	polygons.emplace_back(std::vector<sf::Vector2f>{sf::Vector2f(0,0),sf::Vector2f(400,0),sf::Vector2f(400,130),sf::Vector2f(0,130)});
 
 	buttons.emplace_back(sf::Vector2f(0, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::DIGGING; });
 	buttons.back().shape.setTexture(character);
@@ -147,9 +147,9 @@ int main()
 			polygon.draw(window);
 		}
 
-		for (auto& wall : walls) {
+		/*for (auto& wall : walls) {
 			wall.draw(window);
-		}
+		}*/
 
 		end.update(dt);
 		start.update(dt);
@@ -181,6 +181,19 @@ int main()
 		{
 			button.draw(window);
 		}
+		
+		test.setPosition(45,100);
+		test.setString(std::to_string(numDig));
+		window.draw(test);
+
+		test.setPosition(145, 100);
+		test.setString(std::to_string(numUmbrella));
+		window.draw(test);
+
+		test.setPosition(245, 100);
+		test.setString(std::to_string(numBlock));
+		window.draw(test);
+
 
 		if (lemmingsRemaining <= 1 && lemmingsNum <= 1 && !outOfLevels)
 		{
@@ -367,12 +380,30 @@ Lemming::Lemming(float radius, sf::Vector2f position)
 void Lemming::update(float dt, sf::RenderWindow& window)
 {
 
-	if (mouse.isButtonPressed(sf::Mouse::Left) && state != Lemming::State::DEAD)
+	if (mouse.isButtonPressed(sf::Mouse::Left) && state != Lemming::State::DEAD && state != setState)
 	{
 		sf::Vector2f mousePos = sf::Vector2f(mouse.getPosition(window));
 		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + 12*2 && mousePos.y <= shape.getPosition().y + 12*2))
 		{
-			state = setState;
+			if (setState == State::DIGGING && numDig > 0)
+			{
+				state = setState;
+				numDig--;
+			}
+			else if (setState == State::BLOCKING && numBlock > 0)
+			{
+				state = setState;
+				numBlock--;
+			}
+			else if (setState == State::SOFTFALLING && numUmbrella > 0 && !hasUmbrella)
+			{
+				state = setState;
+				numUmbrella--;
+			}
+			else if (setState == State::EXPLODING)
+			{
+				state = setState;
+			}
 		}
 	}
 
