@@ -1,7 +1,7 @@
 float dist(sf::Vector2f p1, sf::Vector2f p2);
 float distsq(sf::Vector2f p1, sf::Vector2f p2);
 size_t split(const std::string& txt, std::vector<std::string>& strs, char ch);
-int loadLevel(std::string path);
+int loadLevel();
 
 class Lemming
 {
@@ -22,7 +22,8 @@ public:
 		FALLING,
 		SOFTFALLING,
 		BLOCKING,
-		DEAD
+		DEAD,
+		EXPLODING
 	};
 	State state = State::WALKING;
 };

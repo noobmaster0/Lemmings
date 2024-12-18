@@ -25,7 +25,10 @@ int lemmingsRemaining = 5;
 int lemmingsNum = 5;
 int lemmingsNumOg = 5;
 
+int numDig = 5, numUmbrella = 5, numBlock = 5;
+
 int lvlCtr = 1;
+bool outOfLevels = false;
 
 Lemming::State setState = Lemming::State::SOFTFALLING;
 
@@ -63,10 +66,6 @@ int main()
 
 	sf::Texture dirt;
 	if (!dirt.loadFromFile("resources/dirt.png"))
-		return 1;
-
-	sf::Image mapMask;
-	if (!mapMask.loadFromFile("resources/mapmask.png"))
 		return 1;
 	
 	if (!character.loadFromFile("resources/character.png"))
@@ -109,35 +108,17 @@ int main()
 	buttons.back().shape.setTexture(character);
 	buttons.back().shape.setTextureRect(sf::IntRect(0, 48, 16, 16));
 
-	buttons.emplace_back(sf::Vector2f(300, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::WALKING; });
+	buttons.emplace_back(sf::Vector2f(300, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::EXPLODING; });
 	buttons.back().shape.setTexture(character);
-	buttons.back().shape.setTextureRect(sf::IntRect(0, 0, 16, 16));
+	buttons.back().shape.setTextureRect(sf::IntRect(16, 48, 16, 16));
 
-	loadLevel("resources/level.txt");
+	loadLevel();
 
-	bool* mapp = new bool[200*200];
-	
-	for (unsigned int i = 0; i < 200; ++i) {
-		for (unsigned int j = 0; j < 200; ++j) {
-			if (mapMask.getPixel(i, j).r <= 255/2 && mapMask.getPixel(i, j).g <= 255 / 2 && mapMask.getPixel(i, j).b <= 255 / 2)
-			{
-				mapp[i + j * 200] = false;
-			}
-			else
-			{
-				mapp[i + j * 200] = true;
-			}
-		}
-	}
 
 	sf::RectangleShape outline;
 	outline.setOutlineColor(sf::Color::Red);
 	outline.setOutlineThickness(1);
 	outline.setFillColor(sf::Color::Transparent);
-
-	map = TileMap(&mapp[0]);
-
-	delete[] mapp; // free the memory
 
 	float dt = 0;
 	sf::Clock clock;
@@ -166,9 +147,9 @@ int main()
 			polygon.draw(window);
 		}
 
-		/*for (auto& wall : walls) {
+		for (auto& wall : walls) {
 			wall.draw(window);
-		}*/
+		}
 
 		end.update(dt);
 		start.update(dt);
@@ -201,7 +182,7 @@ int main()
 			button.draw(window);
 		}
 
-		if (lemmingsRemaining <= 1 && lemmingsNum <= 1)
+		if (lemmingsRemaining <= 1 && lemmingsNum <= 1 && !outOfLevels)
 		{
 			if (end.num >= .75 * lemmingsNumOg)
 			{
@@ -212,7 +193,7 @@ int main()
 			{
 				std::cout << "You Loose\n";
 			}
-			break;
+			loadLevel();
 		}
 
 		//test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
@@ -259,12 +240,49 @@ size_t split(const std::string& txt, std::vector<std::string>& strs, char ch)
 	return strs.size();
 }
 
-int loadLevel(std::string path)
+int loadLevel()
 {
-	walls.clear();
+	sf::Image mapMask;
+	if (!mapMask.loadFromFile("resources/" + std::to_string(lvlCtr) + "/mapmask.png"))
+	{
+		outOfLevels = true;
+		return 1;
+	}
+
+	bool* mapp = new bool[200 * 200];
+
+	for (unsigned int i = 0; i < 200; ++i) {
+		for (unsigned int j = 0; j < 200; ++j) {
+			if (mapMask.getPixel(i, j).r <= 255 / 2 && mapMask.getPixel(i, j).g <= 255 / 2 && mapMask.getPixel(i, j).b <= 255 / 2)
+			{
+				mapp[i + j * 200] = false;
+			}
+			else
+			{
+				mapp[i + j * 200] = true;
+			}
+		}
+	}
+
+	lemmings.clear();
+
+	//map = TileMap(&mapp[0]);
+
+	for (unsigned int i = 0; i < 200; ++i)
+	{
+		for (unsigned int j = 0; j < 200; ++j)
+		{
+			map.map[(i + j * 200)] = mapp[i + j * 200];
+		}
+	}
+
+	delete[] mapp; // free the memory
+
+	map.recalculate();
+
 
 	std::ifstream file;
-	file.open(path);
+	file.open("resources/" + std::to_string(lvlCtr) + "/lvl.txt");
 	
 	std::string text;
 
@@ -307,6 +325,18 @@ int loadLevel(std::string path)
 				lemmingsRemaining = std::stoi(tokens[1]);
 				lemmingsNum = lemmingsRemaining;
 				lemmingsNumOg = lemmingsRemaining;
+			}
+			else if (command == "b")
+			{
+				numBlock = std::stoi(tokens[1]);
+			}
+			else if (command == "d")
+			{
+				numDig = std::stoi(tokens[1]);
+			}
+			else if (command == "u")
+			{
+				numUmbrella = std::stoi(tokens[1]);
 			}
 			else if (command == " " || command == "")
 			{ }
@@ -442,6 +472,27 @@ void Lemming::update(float dt, sf::RenderWindow& window)
 		}
 		velocity.x = 0;
 	}
+	else if (state == State::EXPLODING)
+	{
+		lemmingsNum--;
+		state = State::DEAD;
+		sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25 / 2, 15);
+		float r = 20;
+		int width = 200, height = 200;
+		for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
+			for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
+				if (!map.map[i + j * width])
+					continue;
+				if (distsq(mp, sf::Vector2f(i*5, j*5)) <= r*r)
+					map.map[i + j * width] = false;
+			}
+		}
+		
+		map.recalculate();
+
+		shape.setTextureRect(sf::IntRect(16, 48, 16, 16));
+		velocity.x = 0;
+	}
 
 	if (state != State::BLOCKING && wallI != -1)
 	{
@@ -550,7 +601,7 @@ sf::Vector2f Wall::closestPoint(Lemming& ball, float dt)
 				ball.state = Lemming::State::DEAD;
 				lemmingsNum--;
 			}
-			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
+			else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING && ball.state != Lemming::State::EXPLODING)
 			{
 				ball.state = Lemming::State::WALKING;
 			}
@@ -585,7 +636,7 @@ void Point::collide(Lemming& ball, float dt)
 			ball.state = Lemming::State::DEAD;
 			lemmingsNum--;
 		}
-		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING)
+		else if (ball.state != Lemming::State::DIGGING && ball.state != Lemming::State::DEAD && ball.state != Lemming::State::BLOCKING && ball.state != Lemming::State::EXPLODING)
 		{
 			ball.state = Lemming::State::WALKING;
 		}
@@ -821,7 +872,6 @@ Button::Button(sf::Vector2f positon, sf::Vector2f size, std::function<void()> ca
 	this->callback = callback;
 	this->size = size;
 	shape.setPosition(positon);
-	shape.setColor(sf::Color::Green);
 	shape.setScale(size);
 }
 
