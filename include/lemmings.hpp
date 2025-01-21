@@ -97,6 +97,7 @@ class Button
 public:
 	sf::Sprite shape;
 	sf::Vector2f size;
+	sf::Color color;
 	Button(sf::Vector2f position, sf::Vector2f size, std::function<void()> callback);
 	void draw(sf::RenderWindow& window);
 	void update(sf::RenderWindow& window);

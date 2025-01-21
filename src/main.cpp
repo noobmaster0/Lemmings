@@ -111,6 +111,7 @@ int main()
 	buttons.emplace_back(sf::Vector2f(300, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::EXPLODING; });
 	buttons.back().shape.setTexture(character);
 	buttons.back().shape.setTextureRect(sf::IntRect(16, 48, 16, 16));
+	buttons.back().color = sf::Color::Red;
 
 	loadLevel();
 
@@ -902,6 +903,8 @@ Button::Button(sf::Vector2f positon, sf::Vector2f size, std::function<void()> ca
 {
 	this->callback = callback;
 	this->size = size;
+	this->color = sf::Color::Green;
+	shape.setColor(color);
 	shape.setPosition(positon);
 	shape.setScale(size);
 }
@@ -920,6 +923,16 @@ void Button::update(sf::RenderWindow& window)
 		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + size.x && mousePos.y <= shape.getPosition().y + size.y))
 		{
 			callback();
+			shape.setColor(sf::Color::Black);
+		}
+		else
+		{
+			shape.setColor(color);
 		}
 	}
+	else
+	{
+		shape.setColor(color);
+	}
+
 }
