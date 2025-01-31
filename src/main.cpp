@@ -16,6 +16,7 @@
 #define resX 1000
 #define resY 1000
 #define PPM 4 // pixels per meter
+#define cellSize 5
 
 sf::Texture character;
 
@@ -111,7 +112,7 @@ int main()
 	buttons.emplace_back(sf::Vector2f(300, 0), sf::Vector2f(100, 100), [&]() {setState = Lemming::State::EXPLODING; });
 	buttons.back().shape.setTexture(character);
 	buttons.back().shape.setTextureRect(sf::IntRect(16, 48, 16, 16));
-	buttons.back().color = sf::Color::Red;
+	buttons.back().color = sf::Color::White;
 
 	loadLevel();
 
@@ -210,14 +211,6 @@ int main()
 			loadLevel();
 		}
 
-		//test.setString("" + std::to_string(lemmings[0].velocity.x) + "," + std::to_string(lemmings[0].velocity.y));
-		//window.draw(test);
-
-		outline.setPosition(floor((mp.x - r)/5)*5, floor((mp.y - r)/5)*5);
-		outline.setSize(sf::Vector2f(r, r)*2.f+sf::Vector2f(5,5));
-
-		//window.draw(outline);
-
 		window.display();
 		dt = clock.restart().asSeconds();
 	}
@@ -263,17 +256,17 @@ int loadLevel()
 		return 1;
 	}
 
-	bool* mapp = new bool[200 * 200];
+	bool* mapp = new bool[resX/cellSize * resY/cellSize];
 
-	for (unsigned int i = 0; i < 200; ++i) {
-		for (unsigned int j = 0; j < 200; ++j) {
+	for (unsigned int i = 0; i < resX / cellSize; ++i) {
+		for (unsigned int j = 0; j < resY / cellSize; ++j) {
 			if (mapMask.getPixel(i, j).r <= 255 / 2 && mapMask.getPixel(i, j).g <= 255 / 2 && mapMask.getPixel(i, j).b <= 255 / 2)
 			{
-				mapp[i + j * 200] = false;
+				mapp[i + j * resX / cellSize] = false;
 			}
 			else
 			{
-				mapp[i + j * 200] = true;
+				mapp[i + j * resX / cellSize] = true;
 			}
 		}
 	}
@@ -282,11 +275,11 @@ int loadLevel()
 
 	//map = TileMap(&mapp[0]);
 
-	for (unsigned int i = 0; i < 200; ++i)
+	for (unsigned int i = 0; i < resX / cellSize; ++i)
 	{
-		for (unsigned int j = 0; j < 200; ++j)
+		for (unsigned int j = 0; j < resY / cellSize; ++j)
 		{
-			map.map[(i + j * 200)] = mapp[i + j * 200];
+			map.map[(i + j * resX / cellSize)] = mapp[i + j * resX / cellSize];
 		}
 	}
 
@@ -386,12 +379,12 @@ void Lemming::update(float dt, sf::RenderWindow& window)
 		sf::Vector2f mousePos = sf::Vector2f(mouse.getPosition(window));
 		if ((mousePos.x >= shape.getPosition().x && mousePos.y >= shape.getPosition().y) && (mousePos.x <= shape.getPosition().x + 12*2 && mousePos.y <= shape.getPosition().y + 12*2))
 		{
-			if (setState == State::DIGGING && numDig > 0)
+			if (setState == State::DIGGING && numDig > 0 && state != State::FALLING)
 			{
 				state = setState;
 				numDig--;
 			}
-			else if (setState == State::BLOCKING && numBlock > 0)
+			else if (setState == State::BLOCKING && numBlock > 0 && state != State::FALLING)
 			{
 				state = setState;
 				numBlock--;
@@ -465,9 +458,9 @@ void Lemming::update(float dt, sf::RenderWindow& window)
 		{
 			sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25 / 2, 15);
 			float r = 15;
-			int width = 200, height = 200;
-			for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
-				for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
+			int width = resX/cellSize, height = resY / cellSize;
+			for (unsigned int i = (mp.x - r) / (float)cellSize; i < (mp.x + r) / (float)cellSize; ++i) {
+				for (unsigned int j = (mp.y - r) / (float)cellSize; j < (mp.y + r) / (float)cellSize; ++j) {
 					if (!map.map[i + j * width])
 						continue;
 					map.map[i + j * width] = false;
@@ -509,13 +502,13 @@ void Lemming::update(float dt, sf::RenderWindow& window)
 		lemmingsNum--;
 		state = State::DEAD;
 		sf::Vector2f mp = shape.getPosition() + sf::Vector2f(25 / 2, 15);
-		float r = 20;
-		int width = 200, height = 200;
-		for (unsigned int i = (mp.x - r) / 5.f; i < (mp.x + r) / 5.f; ++i) {
-			for (unsigned int j = (mp.y - r) / 5.f; j < (mp.y + r) / 5.f; ++j) {
+		float r = 25;
+		int width = resX / cellSize, height = resY / cellSize;
+		for (unsigned int i = (mp.x - r) / (float)cellSize; i < (mp.x + r) / (float)cellSize; ++i) {
+			for (unsigned int j = (mp.y - r) / (float)cellSize; j < (mp.y + r) / (float)cellSize; ++j) {
 				if (!map.map[i + j * width])
 					continue;
-				if (distsq(mp, sf::Vector2f(i*5, j*5)) <= r*r)
+				if (distsq(mp, sf::Vector2f(i*cellSize, j*cellSize)) <= r*r)
 					map.map[i + j * width] = false;
 			}
 		}
@@ -737,8 +730,8 @@ void TileMap::draw(sf::RenderWindow& window, sf::Texture dirt)
 }
 
 void TileMap::recalculate() {
-	int height = 1000 / 5, width = 1000 / 5;
-	sf::Vector2u tileSize = { 5, 5 };
+	int height = resY / cellSize, width = resX / cellSize;
+	sf::Vector2u tileSize = { cellSize, cellSize };
 	// Resize vertex array to accommodate triangles
 	m_vertices.clear();
 	m_vertices.setPrimitiveType(sf::Triangles);
